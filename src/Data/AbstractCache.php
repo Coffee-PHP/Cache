@@ -230,6 +230,7 @@ abstract class AbstractCache implements CacheInterface
 
     /**
      * @inheritDoc
+     * @param iterable|string[] $keys
      * @psalm-suppress InvalidCatch
      */
     public function deleteMultiple($keys): bool
@@ -249,7 +250,7 @@ abstract class AbstractCache implements CacheInterface
     /**
      * Perform the operation specified in {@see \Psr\SimpleCache\CacheInterface::deleteMultiple()}.
      *
-     * @param mixed $keys
+     * @param iterable|string[] $keys
      * @return bool
      * @throws Psr16InvalidArgumentException
      * @throws Psr6InvalidArgumentException
@@ -259,7 +260,9 @@ abstract class AbstractCache implements CacheInterface
 
     /**
      * @inheritDoc
+     * @param string $key
      * @psalm-suppress InvalidCatch
+     * @noinspection PhpMissingParamTypeInspection
      */
     public function has($key): bool
     {
@@ -278,11 +281,12 @@ abstract class AbstractCache implements CacheInterface
     /**
      * Perform the operation specified in {@see \Psr\SimpleCache\CacheInterface::has()}.
      *
-     * @param mixed $key
+     * @param string $key
      * @return bool
      * @throws Psr16InvalidArgumentException
      * @throws Psr6InvalidArgumentException
      * @psalm-suppress InvalidThrow
+     * @noinspection PhpMissingParamTypeInspection
      */
     abstract protected function performHas($key): bool;
 
@@ -290,7 +294,7 @@ abstract class AbstractCache implements CacheInterface
      * Convert the given TTL parameter to a date time.
      * Return null if the given parameter is null.
      *
-     * @param int|DateInterval|null $ttl
+     * @param DateInterval|int|null $ttl
      * @return DateTimeInterface|null
      */
     final protected function convertTtlToDateTime($ttl): ?DateTimeInterface
