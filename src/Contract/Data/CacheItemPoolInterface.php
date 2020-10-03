@@ -46,6 +46,7 @@ interface CacheItemPoolInterface extends Psr_Cache_CacheItemPoolInterface
      * @return iterable|CacheItemInterface[]
      * @psalm-return iterable<string, CacheItemInterface>
      * @phpstan-return iterable<string, CacheItemInterface>
+     * @psalm-suppress ImplementedReturnTypeMismatch
      */
     public function getItems(array $keys = []): iterable;
 

@@ -63,6 +63,7 @@ interface CacheInterface extends Psr_SimpleCache_CacheInterface
      * @phpstan-param iterable<string> $keys
      * @psalm-return iterable<string, mixed>
      * @phpstan-return iterable<string, mixed>
+     * @psalm-suppress MoreSpecificImplementedParamType
      */
     public function getMultiple($keys, $default = null): iterable;
 
@@ -71,6 +72,7 @@ interface CacheInterface extends Psr_SimpleCache_CacheInterface
      * @param iterable $values
      * @psalm-param iterable<string, mixed> $values
      * @phpstan-param iterable<string, mixed> $values
+     * @psalm-suppress MoreSpecificImplementedParamType
      * @noinspection PhpMissingParamTypeInspection
      */
     public function setMultiple($values, $ttl = null): bool;
@@ -80,6 +82,7 @@ interface CacheInterface extends Psr_SimpleCache_CacheInterface
      * @param iterable|string[] $keys
      * @psalm-param iterable<string> $keys
      * @phpstan-param iterable<string> $keys
+     * @psalm-suppress MoreSpecificImplementedParamType
      */
     public function deleteMultiple($keys): bool;
 
