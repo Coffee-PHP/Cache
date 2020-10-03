@@ -94,6 +94,7 @@ final class Cache extends AbstractCache
 
     /**
      * @inheritDoc
+     * @psalm-suppress MixedArgumentTypeCoercion
      */
     protected function performGetMultiple($keys, $default): iterable
     {

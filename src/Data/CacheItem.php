@@ -90,7 +90,7 @@ final class CacheItem implements CacheItemInterface
 
     /**
      * @inheritDoc
-     * @return self
+     * @return static
      */
     public function set($value): self
     {
@@ -102,7 +102,7 @@ final class CacheItem implements CacheItemInterface
     /**
      * @inheritDoc
      * @param DateTimeInterface|null $expiration
-     * @return self
+     * @return static
      * @noinspection PhpMissingParamTypeInspection
      */
     public function expiresAt($expiration): self
@@ -114,7 +114,7 @@ final class CacheItem implements CacheItemInterface
     /**
      * @inheritDoc
      * @param DateInterval|int|null $time
-     * @return self
+     * @return static
      */
     public function expiresAfter($time): self
     {

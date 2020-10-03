@@ -83,6 +83,9 @@ abstract class AbstractCacheItemPool implements CacheItemPoolInterface
 
     /**
      * @inheritDoc
+     * @return iterable|CacheItemInterface[]
+     * @psalm-return iterable<string, CacheItemInterface>
+     * @phpstan-return iterable<string, CacheItemInterface>
      * @psalm-suppress InvalidCatch
      */
     final public function getItems(array $keys = []): iterable

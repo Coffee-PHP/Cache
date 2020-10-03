@@ -48,16 +48,19 @@ interface CacheItemInterface extends Psr_Cache_CacheItemInterfaceAlias
 
     /**
      * @inheritDoc
+     * @return static
      */
     public function set($value): self;
 
     /**
      * @inheritDoc
+     * @return static
      */
     public function expiresAt($expiration): self;
 
     /**
      * @inheritDoc
+     * @return static
      */
     public function expiresAfter($time): self;
 

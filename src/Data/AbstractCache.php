@@ -59,7 +59,9 @@ abstract class AbstractCache implements CacheInterface
 
     /**
      * @inheritDoc
+     * @param string $key
      * @psalm-suppress InvalidCatch
+     * @noinspection PhpMissingParamTypeInspection
      */
     final public function get($key, $default = null)
     {
@@ -78,12 +80,13 @@ abstract class AbstractCache implements CacheInterface
     /**
      * Perform the operation specified in {@see \Psr\SimpleCache\CacheInterface::get()}.
      *
-     * @param mixed $key
+     * @param string $key
      * @param mixed $default
      * @return mixed
      * @throws Psr16InvalidArgumentException
      * @throws Psr6InvalidArgumentException
      * @psalm-suppress InvalidThrow
+     * @noinspection PhpMissingParamTypeInspection
      */
     abstract protected function performGet($key, $default);
 
@@ -118,7 +121,9 @@ abstract class AbstractCache implements CacheInterface
 
     /**
      * @inheritDoc
+     * @param string $key
      * @psalm-suppress InvalidCatch
+     * @noinspection PhpMissingParamTypeInspection
      */
     final public function delete($key): bool
     {
@@ -137,11 +142,12 @@ abstract class AbstractCache implements CacheInterface
     /**
      * Perform the operation specified in {@see \Psr\SimpleCache\CacheInterface::delete()}.
      *
-     * @param mixed $key
+     * @param string $key
      * @return bool
      * @throws Psr16InvalidArgumentException
      * @throws Psr6InvalidArgumentException
      * @psalm-suppress InvalidThrow
+     * @noinspection PhpMissingParamTypeInspection
      */
     abstract protected function performDelete($key): bool;
 
