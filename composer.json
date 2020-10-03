@@ -1,0 +1,80 @@
+{
+    "name": "coffeephp/cache",
+    "description": "Provides abstractions for implementing PSR-6 and PSR-16 compliant caching mechanisms.",
+    "license": "Apache-2.0",
+    "authors": [
+        {
+            "name": "Danny Damsky",
+            "email": "dannydamsky99@gmail.com"
+        }
+    ],
+    "keywords": [
+        "coffeephp",
+        "coffee",
+        "php",
+        "cache",
+        "caching",
+        "storage"
+    ],
+    "require": {
+        "php": ">=7.4",
+        "ext-apcu": "*",
+        "coffeephp/enum": "1.*",
+        "psr/cache": "*",
+        "psr/log": "*",
+        "psr/simple-cache": "*"
+    },
+    "require-dev": {
+        "coffeephp/component-registry": "1.*",
+        "coffeephp/log": "1.*",
+        "coffeephp/quality-tools": "1.*",
+        "roave/security-advisories": "dev-master"
+    },
+    "autoload": {
+        "psr-4": {
+            "CoffeePhp\\Cache\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "CoffeePhp\\Enum\\Test\\": "vendor/coffeephp/enum/test/",
+            "CoffeePhp\\Cache\\Test\\Integration\\": "test/Integration/",
+            "CoffeePhp\\Cache\\Test\\Mock\\": "test/Mock/",
+            "CoffeePhp\\Cache\\Test\\Unit\\": "test/Unit/"
+        }
+    },
+    "suggest": {
+        "coffeephp/component-registry": "For integration of the component with the CoffeePHP framework.",
+        "coffeephp/log": "For providing the PSR logger."
+    },
+    "config": {
+        "sort-packages": true,
+        "optimize-autoloader": true,
+        "apcu-autoloader": true
+    },
+    "extra": {
+        "coffeephp": {
+            "registry": [
+                {
+                    "registrar": "CoffeePhp\\Cache\\Integration\\CacheComponentRegistrar"
+                }
+            ]
+        }
+    },
+    "scripts": {
+        "coffeephp:exec:phpcbf": "coffeephp_exec_phpcbf",
+        "coffeephp:exec:phpcs": "coffeephp_exec_phpcs",
+        "coffeephp:exec:phpmd": "coffeephp_exec_phpmd",
+        "coffeephp:exec:phpstan-analyse": "coffeephp_exec_phpstan_analyse",
+        "coffeephp:exec:phpunit": "coffeephp_exec_phpunit --testsuite unit,integration",
+        "coffeephp:exec:psalm": "coffeephp_exec_psalm",
+        "coffeephp:exec:psalm-alter": "coffeephp_exec_psalm_alter",
+        "coffeephp:exec:publish": "coffeephp_exec_publish",
+        "coffeephp:exec:analyse": [
+            "@coffeephp:exec:phpunit",
+            "@coffeephp:exec:psalm",
+            "@coffeephp:exec:phpcs",
+            "@coffeephp:exec:phpmd"
+        ]
+    }
+}
