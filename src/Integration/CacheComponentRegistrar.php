@@ -45,6 +45,7 @@ use Psr\SimpleCache\CacheInterface as PsrCacheInterface;
  * @package coffeephp\cache
  * @author Danny Damsky <dannydamsky99@gmail.com>
  * @since 2020-10-02
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
 final class CacheComponentRegistrar implements ComponentRegistrarInterface
 {
