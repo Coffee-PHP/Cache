@@ -38,6 +38,12 @@ use CoffeePhp\Json\Integration\JsonComponentRegistrar;
 use CoffeePhp\Log\Integration\LogComponentRegistrar;
 use PHPUnit\Framework\TestCase;
 
+use Psr\Cache\CacheItemInterface;
+
+use Psr\Cache\CacheItemPoolInterface;
+
+use Psr\SimpleCache\CacheInterface;
+
 use function PHPUnit\Framework\assertInstanceOf;
 use function PHPUnit\Framework\assertSame;
 use function PHPUnit\Framework\assertTrue;
@@ -73,6 +79,9 @@ final class CacheComponentRegistrarTest extends TestCase
         assertTrue($di->has(CacheKeyValidatorInterface::class));
         assertTrue($di->has(CacheFactoryInterface::class));
         assertTrue($di->has(CacheItemFactoryInterface::class));
+        assertTrue($di->has(CacheItemInterface::class));
+        assertTrue($di->has(CacheItemPoolInterface::class));
+        assertTrue($di->has(CacheInterface::class));
 
         assertInstanceOf(
             CacheKeyValidatorInterface::class,
