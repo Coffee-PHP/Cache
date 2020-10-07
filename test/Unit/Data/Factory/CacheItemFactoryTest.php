@@ -23,7 +23,7 @@
 
 declare(strict_types=1);
 
-namespace Cache\Unit\Data\Factory;
+namespace CoffeePhp\Cache\Test\Unit\Data\Factory;
 
 use CoffeePhp\Cache\Contract\Data\CacheItemInterface;
 use CoffeePhp\Cache\Data\Factory\CacheItemFactory;

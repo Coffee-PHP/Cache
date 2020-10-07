@@ -31,8 +31,12 @@ use DateInterval;
 use DateTime;
 use Faker\Factory;
 use Faker\Generator;
+use JsonException;
 use PHPUnit\Framework\TestCase;
 
+use function json_encode;
+use function PHPUnit\Framework\assertEquals;
+use function PHPUnit\Framework\assertInstanceOf;
 use function PHPUnit\Framework\assertNull;
 use function PHPUnit\Framework\assertSame;
 use function PHPUnit\Framework\assertTrue;
@@ -175,5 +179,95 @@ final class CacheItemTest extends TestCase
             (new DateTime())->add($interval)->getTimestamp(),
             $item->getExpiration()->getTimestamp()
         );
+    }
+
+    /**
+     * @see CacheItem::serialize()
+     */
+    public function testSerialization(): void
+    {
+        $item = new CacheItem(
+            $this->cacheKeyValidator,
+            'test_key',
+            'test value',
+            true,
+            new DateTime('2020-07-10 12:00:00')
+        );
+        assertSame(
+            'C:30:"CoffeePhp\Cache\Data\CacheItem":109:{a:4:{s:3:"key";s:8:"test_key";s:5:"value";s:10:"test value";s:10:"expiration";i:1594382400;s:6:"is_hit";b:1;}}',
+            serialize($item)
+        );
+    }
+
+    /**
+     * @throws JsonException
+     * @see CacheItem::jsonSerialize()
+     */
+    public function testJsonEncoding(): void
+    {
+        $item = new CacheItem(
+            $this->cacheKeyValidator,
+            'test_key',
+            'test value',
+            true,
+            new DateTime('2020-07-10 12:00:00')
+        );
+        assertSame(
+            '{"key":"test_key","value":"test value","expiration":1594382400,"is_hit":true}',
+            json_encode($item, JSON_THROW_ON_ERROR)
+        );
+    }
+
+    /**
+     * @see CacheItem::unserialize()
+     */
+    public function testUnserialization(): void
+    {
+        /** @var CacheItem $item */
+        $item = unserialize(
+            'C:30:"CoffeePhp\Cache\Data\CacheItem":109:{a:4:{s:3:"key";s:8:"test_key";s:5:"value";s:10:"test value";s:10:"expiration";i:1594382400;s:6:"is_hit";b:1;}}'
+        );
+        assertInstanceOf(CacheItem::class, $item);
+        assertSame('test_key', $item->getKey());
+        assertSame('test value', $item->get());
+        assertSame(1594382400, $item->getExpiration()->getTimestamp());
+        assertSame(true, $item->isHit());
+    }
+
+    /**
+     * @see CacheItem::__toString()
+     */
+    public function testToString(): void
+    {
+        $item = new CacheItem(
+            $this->cacheKeyValidator,
+            'test_key',
+            'test value',
+            true,
+            new DateTime('2020-07-10 12:00:00')
+        );
+        assertSame(
+            'C:30:"CoffeePhp\Cache\Data\CacheItem":109:{a:4:{s:3:"key";s:8:"test_key";s:5:"value";s:10:"test value";s:10:"expiration";i:1594382400;s:6:"is_hit";b:1;}}',
+            (string)$item
+        );
+    }
+
+    /**
+     * @see CacheItem::serialize()
+     * @see CacheItem::unserialize()
+     */
+    public function testSerializationAndUnserialization(): void
+    {
+        for ($i = 0; $i < 50; ++$i) {
+            $key = $this->faker->uuid;
+            $value = $this->faker->paragraph(50);
+            $expiration = $this->faker->optional()->dateTimeBetween('now', '+30 years');
+            $isHit = $this->faker->boolean;
+            $item = new CacheItem($this->cacheKeyValidator, $key, $value, $isHit, $expiration);
+            assertEquals(
+                $item,
+                unserialize(serialize($item))
+            );
+        }
     }
 }
