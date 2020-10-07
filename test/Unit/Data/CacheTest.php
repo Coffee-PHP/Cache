@@ -23,8 +23,9 @@
 
 declare(strict_types=1);
 
-namespace Cache\Unit\Data;
+namespace CoffeePhp\Cache\Test\Unit\Data;
 
+use CoffeePhp\Cache\Contract\Data\CacheInterface;
 use CoffeePhp\Cache\Data\Cache;
 use CoffeePhp\Cache\Data\Factory\CacheFactory;
 use CoffeePhp\Cache\Data\Factory\CacheItemFactory;
@@ -64,7 +65,7 @@ use function PHPUnit\Framework\assertTrue;
 final class CacheTest extends TestCase
 {
     private array $fakeCache = [];
-    private Cache $cache;
+    private CacheInterface $cache;
     private Generator $faker;
 
     /**
@@ -147,9 +148,7 @@ final class CacheTest extends TestCase
                 $value,
                 $this->cache->get($key)
             );
-            $newValue = $this->faker->paragraph(
-                $this->faker->paragraph(50)
-            );
+            $newValue = $this->faker->paragraph(50);
             assertNotSame($value, $newValue);
             assertTrue($this->cache->set($key, $newValue));
             assertSame(

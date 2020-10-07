@@ -26,7 +26,9 @@ declare(strict_types=1);
 namespace CoffeePhp\Cache\Contract\Data;
 
 use DateTimeInterface;
+use JsonSerializable;
 use Psr\Cache\CacheItemInterface as Psr_Cache_CacheItemInterfaceAlias;
+use Serializable;
 
 /**
  * Interface CacheItemInterface
@@ -34,7 +36,7 @@ use Psr\Cache\CacheItemInterface as Psr_Cache_CacheItemInterfaceAlias;
  * @author Danny Damsky <dannydamsky99@gmail.com>
  * @since 2020-10-01
  */
-interface CacheItemInterface extends Psr_Cache_CacheItemInterfaceAlias
+interface CacheItemInterface extends Psr_Cache_CacheItemInterfaceAlias, Serializable, JsonSerializable
 {
     /**
      * @inheritDoc
@@ -70,4 +72,11 @@ interface CacheItemInterface extends Psr_Cache_CacheItemInterfaceAlias
      * @return DateTimeInterface
      */
     public function getExpiration(): ?DateTimeInterface;
+
+    /**
+     * Convert the cache item object to a string.
+     *
+     * @return string
+     */
+    public function __toString(): string;
 }

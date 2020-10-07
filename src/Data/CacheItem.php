@@ -33,6 +33,8 @@ use DateTime;
 use DateTimeInterface;
 
 use function is_int;
+use function serialize;
+use function unserialize;
 
 /**
  * Class CacheItem
@@ -143,5 +145,56 @@ final class CacheItem implements CacheItemInterface
             return null;
         }
         return $this->value;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function serialize(): string
+    {
+        return serialize(
+            [
+                'key' => $this->key,
+                'value' => $this->value,
+                'expiration' => $this->expiration !== null ? $this->expiration->getTimestamp() : null,
+                'is_hit' => $this->isHit
+            ]
+        );
+    }
+
+    /**
+     * @inheritDoc
+     * @noinspection UnserializeExploitsInspection
+     */
+    public function unserialize($serialized): void
+    {
+        [
+            'key' => $this->key,
+            'value' => $this->value,
+            'expiration' => $expiration,
+            'is_hit' => $this->isHit
+        ] = (array)unserialize($serialized);
+        $this->expiration = $expiration !== null ? new DateTime("@{$expiration}") : null;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function jsonSerialize(): array
+    {
+        return [
+            'key' => $this->key,
+            'value' => $this->value,
+            'expiration' => $this->expiration !== null ? $this->expiration->getTimestamp() : null,
+            'is_hit' => $this->isHit
+        ];
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function __toString(): string
+    {
+        return serialize($this);
     }
 }
