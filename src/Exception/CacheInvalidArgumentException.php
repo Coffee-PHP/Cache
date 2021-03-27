@@ -25,8 +25,8 @@ declare(strict_types=1);
 
 namespace CoffeePhp\Cache\Exception;
 
-use Psr\Cache\InvalidArgumentException as Psr_Cache_InvalidArgumentException;
-use Psr\SimpleCache\InvalidArgumentException as Psr_SimpleCache_InvalidArgumentException;
+use Psr\Cache\InvalidArgumentException as Psr6InvalidArgumentException;
+use Psr\SimpleCache\InvalidArgumentException as Psr16InvalidArgumentException;
 
 /**
  * Class CacheInvalidArgumentException
@@ -35,7 +35,7 @@ use Psr\SimpleCache\InvalidArgumentException as Psr_SimpleCache_InvalidArgumentE
  * @since 2020-09-30
  */
 class CacheInvalidArgumentException extends CacheException implements
-    Psr_Cache_InvalidArgumentException,
-    Psr_SimpleCache_InvalidArgumentException
+    Psr6InvalidArgumentException,
+    Psr16InvalidArgumentException
 {
 }

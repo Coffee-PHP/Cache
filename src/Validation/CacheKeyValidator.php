@@ -26,7 +26,7 @@ declare(strict_types=1);
 namespace CoffeePhp\Cache\Validation;
 
 use CoffeePhp\Cache\Contract\Validation\CacheKeyValidatorInterface;
-use CoffeePhp\Cache\Exception\CacheInvalidArgumentException;
+use CoffeePhp\Cache\Exception\CacheKeyValidatorException;
 
 use function is_iterable;
 use function is_string;
@@ -42,27 +42,26 @@ final class CacheKeyValidator implements CacheKeyValidatorInterface
     /**
      * @inheritDoc
      */
-    public function validate($key): string
+    public function validate(mixed $key): string
     {
         if (!is_string($key)) {
-            throw new CacheInvalidArgumentException('The given key is not a string.');
+            throw new CacheKeyValidatorException('The given key is not a string');
         }
         if (empty($key)) {
-            throw new CacheInvalidArgumentException('The given key is empty.');
+            throw new CacheKeyValidatorException('The given key is empty');
         }
-        return (string)$key;
+        return $key;
     }
 
     /**
      * @inheritDoc
      */
-    public function validateMultiple($keys): array
+    public function validateMultiple(mixed $keys): array
     {
         if (!is_iterable($keys)) {
-            throw new CacheInvalidArgumentException('The given keys are not iterable.');
+            throw new CacheKeyValidatorException('The given keys are not iterable');
         }
         $validatedKeys = [];
-        /** @var mixed $key */
         foreach ($keys as $key) {
             $validatedKeys[] = $this->validate($key);
         }

@@ -3,7 +3,7 @@
 /**
  * CacheTest.php
  *
- * Copyright 2020 Danny Damsky
+ * Copyright 2021 Danny Damsky
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -18,40 +18,31 @@
  *
  * @package coffeephp\cache
  * @author Danny Damsky <dannydamsky99@gmail.com>
- * @since 2020-10-03
+ * @since 2021-03-27
  */
 
 declare(strict_types=1);
 
 namespace CoffeePhp\Cache\Test\Unit\Data;
 
-use CoffeePhp\Cache\Contract\Data\CacheInterface;
+use CoffeePhp\Cache\Contract\CacheManagerInterface;
 use CoffeePhp\Cache\Data\Cache;
-use CoffeePhp\Cache\Data\Factory\CacheFactory;
-use CoffeePhp\Cache\Data\Factory\CacheItemFactory;
+use CoffeePhp\Cache\Exception\CacheException;
 use CoffeePhp\Cache\Exception\CacheInvalidArgumentException;
-use CoffeePhp\Cache\Test\Mock\MockCacheItemPool;
-use CoffeePhp\Cache\Validation\CacheKeyValidator;
-use CoffeePhp\Event\Data\EventListenerMap;
-use CoffeePhp\Event\EventManager;
-use CoffeePhp\Event\Handling\EventDispatcher;
-use CoffeePhp\Event\Handling\ListenerProvider;
-use CoffeePhp\Json\JsonTranslator;
-use CoffeePhp\Log\Data\LogMessageFactory;
-use CoffeePhp\Log\Event\LogEvent;
-use CoffeePhp\Log\Formatting\StringLogFormatter;
-use CoffeePhp\Log\Logger;
-use CoffeePhp\Log\Output\StandardOutputLogWriter;
-use CoffeePhp\Log\PsrLogger;
-use Faker\Factory;
-use Faker\Generator;
-use PHPUnit\Framework\TestCase;
+use CoffeePhp\Cache\Test\Fake\FakeCacheComponentRegistrar;
+use CoffeePhp\Cache\Test\Unit\AbstractCacheTest;
+use DateInterval;
 use Psr\SimpleCache\InvalidArgumentException;
+use ReflectionClass;
+use ReflectionException;
+use Throwable;
 
-use function array_fill_keys;
 use function array_keys;
+use function iterator_to_array;
 use function PHPUnit\Framework\assertFalse;
+use function PHPUnit\Framework\assertGreaterThan;
 use function PHPUnit\Framework\assertNotSame;
+use function PHPUnit\Framework\assertNull;
 use function PHPUnit\Framework\assertSame;
 use function PHPUnit\Framework\assertTrue;
 
@@ -59,66 +50,34 @@ use function PHPUnit\Framework\assertTrue;
  * Class CacheTest
  * @package coffeephp\cache
  * @author Danny Damsky <dannydamsky99@gmail.com>
- * @since 2020-10-03
+ * @since 2021-03-27
  * @see Cache
  */
-final class CacheTest extends TestCase
+final class CacheTest extends AbstractCacheTest
 {
     private array $fakeCache = [];
-    private CacheInterface $cache;
-    private Generator $faker;
+    private Cache $cache;
+    private Cache $badCache;
+    private Cache $badCache2;
+    private Cache $badCache3;
 
     /**
-     * CacheTest constructor.
-     * @param string|null $name
-     * @param array $data
-     * @param string $dataName
+     * @before
+     * @throws Throwable|InvalidArgumentException
      */
-    public function __construct(?string $name = null, array $data = [], string $dataName = '')
+    public function setupDependencies(): void
     {
-        parent::__construct($name, $data, $dataName);
-        $keyValidator = new CacheKeyValidator();
-        $cacheItemFactory = new CacheItemFactory($keyValidator);
-        $logger = new PsrLogger(
-            new Logger(
-                new EventManager(
-                    new EventDispatcher(
-                        new ListenerProvider(
-                            new EventListenerMap()
-                        )
-                    ),
-                    new EventListenerMap(),
-                    new ListenerProvider(
-                        new EventListenerMap()
-                    )
-                ),
-                new LogEvent(),
-                new StandardOutputLogWriter(
-                    new StringLogFormatter(
-                        new JsonTranslator(),
-                        'c'
-                    )
-                )
-            ),
-            new LogMessageFactory()
-        );
-        $cacheFactory = new CacheFactory($cacheItemFactory, $logger);
-        $this->cache = $cacheFactory->create(new MockCacheItemPool($cacheItemFactory, $keyValidator, $logger));
-        $this->faker = Factory::create();
-        for ($i = 0; $i < 50; ++$i) {
-            $this->fakeCache[$this->faker->uuid] = $this->faker->paragraph(50);
-        }
-    }
-
-    /**
-     * @inheritDoc
-     * @throws InvalidArgumentException
-     */
-    protected function setUp(): void
-    {
-        parent::setUp();
+        $this->cache = $this->getClass(FakeCacheComponentRegistrar::DI_KEY_FAKE_CACHE)->getCache();
+        $this->badCache = $this->getClass(FakeCacheComponentRegistrar::DI_KEY_FAKE_BAD_CACHE)->getCache();
+        $this->badCache2 = $this->getClass(FakeCacheComponentRegistrar::DI_KEY_FAKE_BAD_CACHE_2)->getCache();
+        $this->badCache3 = $this->getClass(FakeCacheComponentRegistrar::DI_KEY_FAKE_BAD_CACHE_3)->getCache();
+        $this->fakeCache = [];
         $this->cache->clear();
-        $this->cache->setMultiple($this->fakeCache);
+        for ($i = 0; $i < 50; ++$i) {
+            [$key, $value] = [$this->getFaker()->uuid, $this->getFaker()->paragraph(50)];
+            $this->fakeCache[$key] = $value;
+            $this->cache->set($key, $value);
+        }
     }
 
     /**
@@ -128,13 +87,33 @@ final class CacheTest extends TestCase
     public function testGet(): void
     {
         foreach ($this->fakeCache as $key => $value) {
-            assertSame(
-                $value,
-                $this->cache->get($key)
-            );
+            assertSame($value, $this->cache->get($key));
         }
-        $this->expectException(CacheInvalidArgumentException::class);
-        $this->cache->get(2);
+        assertNull($this->cache->get('null'));
+        self::assertException(
+            fn() => $this->cache->get(2),
+            CacheInvalidArgumentException::class,
+            'CACHESTATE[32]: Failed to fetch a value from cache ; The given key is not a string',
+            32
+        );
+        self::assertException(
+            fn() => $this->cache->get(''),
+            CacheInvalidArgumentException::class,
+            'CACHESTATE[32]: Failed to fetch a value from cache ; The given key is empty',
+            32
+        );
+        self::assertException(
+            fn() => $this->badCache->get('test'),
+            CacheException::class,
+            'CACHESTATE[32]: Failed to fetch a value from cache ; test get',
+            32
+        );
+        self::assertException(
+            fn() => $this->badCache2->get('test'),
+            CacheException::class,
+            'CACHESTATE[32]: Failed to fetch a value from cache ; test get item',
+            32
+        );
     }
 
     /**
@@ -144,20 +123,36 @@ final class CacheTest extends TestCase
     public function testSet(): void
     {
         foreach ($this->fakeCache as $key => $value) {
-            assertSame(
-                $value,
-                $this->cache->get($key)
-            );
-            $newValue = $this->faker->paragraph(50);
+            assertSame($value, $this->cache->get($key));
+            $newValue = $this->getFaker()->paragraph(50);
             assertNotSame($value, $newValue);
             assertTrue($this->cache->set($key, $newValue));
-            assertSame(
-                $newValue,
-                $this->cache->get($key)
-            );
+            assertSame($newValue, $this->cache->get($key));
         }
-        $this->expectException(CacheInvalidArgumentException::class);
-        $this->cache->set(2, $this->faker->paragraph);
+        self::assertException(
+            fn() => $this->cache->set(2, '2'),
+            CacheInvalidArgumentException::class,
+            'CACHESTATE[64]: Failed to set a value in cache ; The given key is not a string',
+            64
+        );
+        self::assertException(
+            fn() => $this->cache->set('', '2'),
+            CacheInvalidArgumentException::class,
+            'CACHESTATE[64]: Failed to set a value in cache ; The given key is empty',
+            64
+        );
+        self::assertException(
+            fn() => $this->badCache->set('2', '2'),
+            CacheException::class,
+            'CACHESTATE[64]: Failed to set a value in cache ; test set',
+            64
+        );
+        self::assertException(
+            fn() => $this->badCache2->set('2', '2'),
+            CacheException::class,
+            'CACHESTATE[64]: Failed to set a value in cache ; test save',
+            64
+        );
     }
 
     /**
@@ -171,41 +166,94 @@ final class CacheTest extends TestCase
             assertTrue($this->cache->delete($key));
             assertFalse($this->cache->has($key));
         }
-        $this->expectException(CacheInvalidArgumentException::class);
-        $this->cache->delete(2);
+        self::assertException(
+            fn() => $this->cache->delete(2),
+            CacheInvalidArgumentException::class,
+            'CACHESTATE[128]: Failed to delete a value from cache ; The given key is not a string',
+            128
+        );
+        self::assertException(
+            fn() => $this->cache->delete(''),
+            CacheInvalidArgumentException::class,
+            'CACHESTATE[128]: Failed to delete a value from cache ; The given key is empty',
+            128
+        );
+        self::assertException(
+            fn() => $this->badCache->delete('2'),
+            CacheException::class,
+            'CACHESTATE[128]: Failed to delete a value from cache ; test delete',
+            128
+        );
+        self::assertException(
+            fn() => $this->badCache2->delete('2'),
+            CacheException::class,
+            'CACHESTATE[128]: Failed to delete a value from cache ; test delete item',
+            128
+        );
     }
 
     /**
-     * @throws InvalidArgumentException
+     * @throws Throwable|InvalidArgumentException
      * @see Cache::clear()
      */
     public function testClear(): void
     {
+        foreach (array_keys($this->fakeCache) as $key) {
+            assertTrue($this->cache->has($key));
+        }
         assertTrue($this->cache->clear());
         foreach (array_keys($this->fakeCache) as $key) {
             assertFalse($this->cache->has($key));
         }
+        self::assertException(
+            fn() => $this->badCache->clear(),
+            CacheException::class,
+            'CACHESTATE[256]: Failed to clear cache ; test delete all'
+        );
+        self::assertException(
+            fn() => $this->badCache2->clear(),
+            CacheException::class,
+            'CACHESTATE[256]: Failed to clear cache ; test clear'
+        );
     }
 
     /**
      * @throws InvalidArgumentException
      * @see Cache::getMultiple()
+     * @noinspection PhpParamsInspection
      */
     public function testGetMultiple(): void
     {
         $fromCache = $this->cache->getMultiple(array_keys($this->fakeCache));
         foreach ($fromCache as $key => $value) {
-            assertSame(
-                $value,
-                $this->fakeCache[$key]
-            );
+            assertSame($value, $this->fakeCache[$key]);
         }
-        try {
-            $this->cache->getMultiple(['a', 5, '']);
-            assertTrue(false);
-        } catch (CacheInvalidArgumentException $e) {
-            assertTrue(true);
-        }
+        assertSame(['null' => null], iterator_to_array($this->cache->getMultiple(['null'])));
+        assertSame(['null' => 'a'], iterator_to_array($this->cache->getMultiple(['null'], 'a')));
+        self::assertException(
+            fn() => iterator_to_array($this->cache->getMultiple(['a', 5, 'b'])),
+            CacheInvalidArgumentException::class,
+            'CACHESTATE[33]: Failed to fetch multiple values from cache ; The given key is not a string',
+            33
+        );
+        self::assertException(
+            fn() => iterator_to_array($this->cache->getMultiple(['a', '', 'b'])),
+            CacheInvalidArgumentException::class,
+            'CACHESTATE[33]: Failed to fetch multiple values from cache ; The given key is empty',
+            33
+        );
+        self::assertException(
+            fn() => iterator_to_array($this->badCache->getMultiple(['a', 'b', 'c'])),
+            CacheException::class,
+            'CACHESTATE[33]: Failed to fetch multiple values from cache ; test get multiple',
+            33
+        );
+        self::assertException(
+            fn() => iterator_to_array($this->badCache2->getMultiple(['a', 'b', 'c'])),
+            CacheException::class,
+            'CACHESTATE[33]: Failed to fetch multiple values from cache ; test get items',
+            33
+        );
     }
 
     /**
@@ -215,27 +263,38 @@ final class CacheTest extends TestCase
     public function testSetMultiple(): void
     {
         foreach ($this->fakeCache as $key => $value) {
-            assertSame(
-                $value,
-                $this->cache->get($key)
-            );
+            assertSame($value, $this->cache->get($key));
         }
-        $override = $this->faker->paragraph(50);
-        $keys = array_keys($this->fakeCache);
-        $result = array_fill_keys($keys, $override);
-        assertTrue($this->cache->setMultiple($result));
-        foreach ($this->fakeCache as $key => $value) {
-            assertSame(
-                $override,
-                $this->cache->get($key)
-            );
+        $override = $this->getFaker()->paragraph(50);
+        assertTrue($this->cache->setMultiple(array_fill_keys(array_keys($this->fakeCache), $override)));
+        assertFalse($this->badCache3->setMultiple(array_fill_keys(array_keys($this->fakeCache), $override)));
+        foreach (array_keys($this->fakeCache) as $key) {
+            assertSame($override, $this->cache->get($key));
         }
-        try {
-            $this->cache->setMultiple(['a' => 'b', 5 => 'c', '' => 'd']);
-            assertTrue(false);
-        } catch (CacheInvalidArgumentException $e) {
-            assertTrue(true);
-        }
+        self::assertException(
+            fn() => $this->cache->setMultiple(['a' => 'b', 5 => 'd', 'e' => 'f']),
+            CacheInvalidArgumentException::class,
+            'CACHESTATE[65]: Failed to set multiple values in cache ; The given key is not a string',
+            65
+        );
+        self::assertException(
+            fn() => $this->cache->setMultiple(['a' => 'b', '' => 'd', 'e' => 'f']),
+            CacheInvalidArgumentException::class,
+            'CACHESTATE[65]: Failed to set multiple values in cache ; The given key is empty',
+            65
+        );
+        self::assertException(
+            fn() => $this->badCache->setMultiple(['a' => 'b', 'c' => 'd', 'e' => 'f']),
+            CacheException::class,
+            'CACHESTATE[66]: Failed to set a deferred value in cache ; test set deferred',
+            66
+        );
+        self::assertException(
+            fn() => $this->badCache2->setMultiple(['a' => 'b', 'c' => 'd', 'e' => 'f']),
+            CacheException::class,
+            'CACHESTATE[65]: Failed to set multiple values in cache ; test save deferred',
+            65
+        );
     }
 
     /**
@@ -244,23 +303,41 @@ final class CacheTest extends TestCase
      */
     public function testDeleteMultiple(): void
     {
-        foreach ($this->fakeCache as $key => $value) {
+        foreach (array_keys($this->fakeCache) as $key) {
             assertTrue($this->cache->has($key));
         }
         assertTrue($this->cache->deleteMultiple(array_keys($this->fakeCache)));
-        foreach ($this->fakeCache as $key => $value) {
+        foreach (array_keys($this->fakeCache) as $key) {
             assertFalse($this->cache->has($key));
         }
-        try {
-            $this->cache->deleteMultiple(['a', 5, '']);
-            assertTrue(false);
-        } catch (CacheInvalidArgumentException $e) {
-            assertTrue(true);
-        }
+        self::assertException(
+            fn() => $this->cache->deleteMultiple(['a', 5, 'c']),
+            CacheInvalidArgumentException::class,
+            'CACHESTATE[129]: Failed to delete multiple values from cache ; The given key is not a string',
+            129
+        );
+        self::assertException(
+            fn() => $this->cache->deleteMultiple(['a', '', 'c']),
+            CacheInvalidArgumentException::class,
+            'CACHESTATE[129]: Failed to delete multiple values from cache ; The given key is empty',
+            129
+        );
+        self::assertException(
+            fn() => $this->badCache->deleteMultiple(['a', 'b', 'c']),
+            CacheException::class,
+            'CACHESTATE[129]: Failed to delete multiple values from cache ; test delete multiple',
+            129
+        );
+        self::assertException(
+            fn() => $this->badCache2->deleteMultiple(['a', 'b', 'c']),
+            CacheException::class,
+            'CACHESTATE[129]: Failed to delete multiple values from cache ; test delete items',
+            129
+        );
     }
 
     /**
-     * @throws InvalidArgumentException
+     * @throws Throwable|InvalidArgumentException
      * @see Cache::has()
      */
     public function testHas(): void
@@ -268,7 +345,47 @@ final class CacheTest extends TestCase
         foreach (array_keys($this->fakeCache) as $key) {
             assertTrue($this->cache->has($key));
         }
-        $this->expectException(CacheInvalidArgumentException::class);
-        $this->cache->has(2);
+        assertTrue($this->cache->clear());
+        foreach (array_keys($this->fakeCache) as $key) {
+            assertFalse($this->cache->has($key));
+        }
+        self::assertException(
+            fn() => $this->cache->has(2),
+            CacheInvalidArgumentException::class,
+            'CACHESTATE[512]: Failed to check for the availability of a key in cache ; The given key is not a string',
+            512
+        );
+        self::assertException(
+            fn() => $this->cache->has(''),
+            CacheInvalidArgumentException::class,
+            'CACHESTATE[512]: Failed to check for the availability of a key in cache ; The given key is empty',
+            512
+        );
+        self::assertException(
+            fn() => $this->badCache->has('a'),
+            CacheException::class,
+            'CACHESTATE[512]: Failed to check for the availability of a key in cache ; test has',
+            512
+        );
+        self::assertException(
+            fn() => $this->badCache2->has('a'),
+            CacheException::class,
+            'CACHESTATE[512]: Failed to check for the availability of a key in cache ; test has item',
+            512
+        );
+    }
+
+    /**
+     * @throws ReflectionException
+     * @see Cache::convertTtlToDateTime()
+     */
+    public function testConvertTtlToDateTime(): void
+    {
+        $reflectionMethod = (new ReflectionClass(Cache::class))->getMethod('convertTtlToDateTime');
+        $reflectionMethod->setAccessible(true);
+
+        assertNull($reflectionMethod->invoke($this->cache, null));
+        assertGreaterThan(time(), $reflectionMethod->invoke($this->cache, 10)->getTimestamp());
+        assertGreaterThan(time(), $reflectionMethod->invoke($this->cache, new DateInterval('PT10S'))->getTimestamp());
     }
 }

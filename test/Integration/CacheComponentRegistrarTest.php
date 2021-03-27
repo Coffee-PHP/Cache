@@ -25,25 +25,26 @@ declare(strict_types=1);
 
 namespace CoffeePhp\Cache\Test\Integration;
 
+use CoffeePhp\Cache\CacheManager;
+use CoffeePhp\Cache\Contract\CacheManagerInterface;
 use CoffeePhp\Cache\Contract\Data\Factory\CacheFactoryInterface;
 use CoffeePhp\Cache\Contract\Data\Factory\CacheItemFactoryInterface;
 use CoffeePhp\Cache\Contract\Validation\CacheKeyValidatorInterface;
 use CoffeePhp\Cache\Data\Factory\CacheFactory;
 use CoffeePhp\Cache\Data\Factory\CacheItemFactory;
 use CoffeePhp\Cache\Integration\CacheComponentRegistrar;
+use CoffeePhp\Cache\Test\Fake\FakeBadCacheItemPool;
+use CoffeePhp\Cache\Test\Fake\FakeBadCacheItemPool2;
+use CoffeePhp\Cache\Test\Fake\FakeBadCacheItemPool3;
+use CoffeePhp\Cache\Test\Fake\FakeCacheComponentRegistrar;
+use CoffeePhp\Cache\Test\Fake\FakeCacheItemPool;
 use CoffeePhp\Cache\Validation\CacheKeyValidator;
+use CoffeePhp\ComponentRegistry\ComponentRegistry;
 use CoffeePhp\Di\Container;
-use CoffeePhp\Event\Integration\EventComponentRegistrar;
-use CoffeePhp\Json\Integration\JsonComponentRegistrar;
-use CoffeePhp\Log\Integration\LogComponentRegistrar;
-use PHPUnit\Framework\TestCase;
-
-use Psr\Cache\CacheItemInterface;
-
+use CoffeePhp\QualityTools\TestCase;
 use Psr\Cache\CacheItemPoolInterface;
 
-use Psr\SimpleCache\CacheInterface;
-
+use function PHPUnit\Framework\assertFalse;
 use function PHPUnit\Framework\assertInstanceOf;
 use function PHPUnit\Framework\assertSame;
 use function PHPUnit\Framework\assertTrue;
@@ -63,51 +64,62 @@ final class CacheComponentRegistrarTest extends TestCase
     public function testRegister(): void
     {
         $di = new Container();
+        $register = new ComponentRegistry($di);
+        $register->register(CacheComponentRegistrar::class);
 
-        $jsonRegistrar = new JsonComponentRegistrar();
-        $jsonRegistrar->register($di);
-
-        $eventRegistrar = new EventComponentRegistrar();
-        $eventRegistrar->register($di);
-
-        $logRegistrar = new LogComponentRegistrar();
-        $logRegistrar->register($di);
-
-        $registrar = new CacheComponentRegistrar();
-        $registrar->register($di);
-
+        assertTrue($di->has(CacheKeyValidator::class));
         assertTrue($di->has(CacheKeyValidatorInterface::class));
+        assertTrue($di->has(CacheFactory::class));
         assertTrue($di->has(CacheFactoryInterface::class));
+        assertTrue($di->has(CacheItemFactory::class));
         assertTrue($di->has(CacheItemFactoryInterface::class));
-        assertTrue($di->has(CacheItemInterface::class));
-        assertTrue($di->has(CacheItemPoolInterface::class));
-        assertTrue($di->has(CacheInterface::class));
 
-        assertInstanceOf(
-            CacheKeyValidatorInterface::class,
-            $di->get(CacheKeyValidatorInterface::class)
-        );
-        assertSame(
-            $di->get(CacheKeyValidatorInterface::class),
-            $di->get(CacheKeyValidator::class)
-        );
+        $register->register(FakeCacheComponentRegistrar::class);
 
-        assertInstanceOf(
-            CacheFactoryInterface::class,
-            $di->get(CacheFactoryInterface::class)
-        );
-        assertSame(
-            $di->get(CacheFactoryInterface::class),
-            $di->get(CacheFactory::class)
-        );
+        assertFalse($di->has(CacheItemPoolInterface::class));
+        assertFalse($di->has(CacheManager::class));
+        assertFalse($di->has(CacheManagerInterface::class));
+        assertTrue($di->has(FakeBadCacheItemPool::class));
+        assertTrue($di->has(FakeBadCacheItemPool2::class));
+        assertTrue($di->has(FakeBadCacheItemPool3::class));
+        assertTrue($di->has(FakeCacheItemPool::class));
+        assertTrue($di->has(FakeCacheComponentRegistrar::DI_KEY_FAKE_BAD_CACHE));
+        assertTrue($di->has(FakeCacheComponentRegistrar::DI_KEY_FAKE_BAD_CACHE_2));
+        assertTrue($di->has(FakeCacheComponentRegistrar::DI_KEY_FAKE_BAD_CACHE_3));
+        assertTrue($di->has(FakeCacheComponentRegistrar::DI_KEY_FAKE_CACHE));
 
-        assertInstanceOf(
-            CacheItemFactoryInterface::class,
-            $di->get(CacheItemFactoryInterface::class)
-        );
-        assertSame(
-            $di->get(CacheItemFactoryInterface::class),
-            $di->get(CacheItemFactory::class)
-        );
+        assertInstanceOf(CacheKeyValidator::class, $di->get(CacheKeyValidator::class));
+        assertSame($di->get(CacheKeyValidator::class), $di->get(CacheKeyValidatorInterface::class));
+
+        assertInstanceOf(CacheFactory::class, $di->get(CacheFactory::class));
+        assertSame($di->get(CacheFactory::class), $di->get(CacheFactoryInterface::class));
+
+        assertInstanceOf(CacheItemFactory::class, $di->get(CacheItemFactory::class));
+        assertSame($di->get(CacheItemFactory::class), $di->get(CacheItemFactoryInterface::class));
+
+        assertInstanceOf(FakeBadCacheItemPool::class, $di->get(FakeBadCacheItemPool::class));
+        assertInstanceOf(FakeBadCacheItemPool2::class, $di->get(FakeBadCacheItemPool2::class));
+        assertInstanceOf(FakeBadCacheItemPool3::class, $di->get(FakeBadCacheItemPool3::class));
+        assertInstanceOf(FakeCacheItemPool::class, $di->get(FakeCacheItemPool::class));
+
+        $fakeBadCacheManager = $di->get(FakeCacheComponentRegistrar::DI_KEY_FAKE_BAD_CACHE);
+        assertInstanceOf(CacheManager::class, $fakeBadCacheManager);
+        assertSame($fakeBadCacheManager->getPool(), $di->get(FakeBadCacheItemPool::class));
+
+        $fakeBadCacheManager2 = $di->get(FakeCacheComponentRegistrar::DI_KEY_FAKE_BAD_CACHE_2);
+        assertInstanceOf(CacheManager::class, $fakeBadCacheManager2);
+        assertSame($fakeBadCacheManager2->getPool(), $di->get(FakeBadCacheItemPool2::class));
+
+        $fakeBadCacheManager3 = $di->get(FakeCacheComponentRegistrar::DI_KEY_FAKE_BAD_CACHE_3);
+        assertInstanceOf(CacheManager::class, $fakeBadCacheManager3);
+        assertSame($fakeBadCacheManager3->getPool(), $di->get(FakeBadCacheItemPool3::class));
+
+        $fakeCacheManager = $di->get(FakeCacheComponentRegistrar::DI_KEY_FAKE_CACHE);
+        assertInstanceOf(CacheManager::class, $fakeCacheManager);
+        assertSame($fakeCacheManager->getPool(), $di->get(FakeCacheItemPool::class));
+
+        self::assertException(fn() => $di->get(CacheManager::class));
+        self::assertException(fn() => $di->get(CacheManagerInterface::class));
+        self::assertException(fn() => $di->get(CacheItemPoolInterface::class));
     }
 }

@@ -1,9 +1,9 @@
 <?php
 
 /**
- * AbstractCacheManager.php
+ * CacheManager.php
  *
- * Copyright 2020 Danny Damsky
+ * Copyright 2021 Danny Damsky
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -18,7 +18,7 @@
  *
  * @package coffeephp\cache
  * @author Danny Damsky <dannydamsky99@gmail.com>
- * @since 2020-10-02
+ * @since 2021-03-26
  */
 
 declare(strict_types=1);
@@ -26,30 +26,28 @@ declare(strict_types=1);
 namespace CoffeePhp\Cache;
 
 use CoffeePhp\Cache\Contract\CacheManagerInterface;
-use CoffeePhp\Cache\Contract\Data\CacheInterface;
-use CoffeePhp\Cache\Contract\Data\CacheItemPoolInterface;
 use CoffeePhp\Cache\Contract\Data\Factory\CacheFactoryInterface;
+use Psr\Cache\CacheItemPoolInterface;
+use Psr\SimpleCache\CacheInterface;
 
 /**
- * Class AbstractCacheManager
+ * Class CacheManager
  * @package coffeephp\cache
  * @author Danny Damsky <dannydamsky99@gmail.com>
- * @since 2020-10-02
+ * @since 2021-03-26
  */
-abstract class AbstractCacheManager implements CacheManagerInterface
+final class CacheManager implements CacheManagerInterface
 {
     private CacheInterface $cache;
-    private CacheItemPoolInterface $pool;
 
     /**
-     * AbstractCacheManager constructor.
+     * CacheManager constructor.
      * @param CacheFactoryInterface $cacheFactory
      * @param CacheItemPoolInterface $pool
      */
-    public function __construct(CacheFactoryInterface $cacheFactory, CacheItemPoolInterface $pool)
+    public function __construct(CacheFactoryInterface $cacheFactory, private CacheItemPoolInterface $pool)
     {
         $this->cache = $cacheFactory->create($pool);
-        $this->pool = $pool;
     }
 
     /**

@@ -19,22 +19,20 @@
  * @package coffeephp\cache
  * @author Danny Damsky <dannydamsky99@gmail.com>
  * @since 2020-10-01
+ * @noinspection PhpUnnecessaryStaticReferenceInspection
  */
 
 declare(strict_types=1);
 
 namespace CoffeePhp\Cache\Data;
 
-use CoffeePhp\Cache\Contract\Data\CacheItemInterface;
 use CoffeePhp\Cache\Contract\Validation\CacheKeyValidatorInterface;
-use CoffeePhp\Cache\Exception\CacheInvalidArgumentException;
 use DateInterval;
 use DateTime;
 use DateTimeInterface;
+use Psr\Cache\CacheItemInterface;
 
 use function is_int;
-use function serialize;
-use function unserialize;
 
 /**
  * Class CacheItem
@@ -46,32 +44,22 @@ final class CacheItem implements CacheItemInterface
 {
     private string $key;
 
-    /** @var mixed */
-    private $value;
-
-    private ?DateTimeInterface $expiration;
-    private bool $isHit;
-
     /**
      * CacheItem constructor.
      * @param CacheKeyValidatorInterface $keyValidator
-     * @param mixed $key Must be a string.
+     * @param mixed $key
      * @param mixed $value
      * @param bool $isHit
      * @param DateTimeInterface|null $expiration
-     * @throws CacheInvalidArgumentException
      */
     public function __construct(
-        CacheKeyValidatorInterface $keyValidator,
-        $key,
-        $value,
-        bool $isHit,
-        ?DateTimeInterface $expiration
+        private CacheKeyValidatorInterface $keyValidator,
+        mixed $key,
+        private mixed $value,
+        private bool $isHit,
+        private ?DateTimeInterface $expiration
     ) {
-        $this->key = $keyValidator->validate($key);
-        $this->value = $value;
-        $this->expiration = $expiration;
-        $this->isHit = $isHit;
+        $this->key = $this->keyValidator->validate($key);
     }
 
     /**
@@ -85,61 +73,7 @@ final class CacheItem implements CacheItemInterface
     /**
      * @inheritDoc
      */
-    public function isHit(): bool
-    {
-        return $this->isHit;
-    }
-
-    /**
-     * @inheritDoc
-     * @return static
-     */
-    public function set($value): self
-    {
-        $this->value = $value;
-        $this->isHit = true;
-        return $this;
-    }
-
-    /**
-     * @inheritDoc
-     * @param DateTimeInterface|null $expiration
-     * @return static
-     * @noinspection PhpMissingParamTypeInspection
-     */
-    public function expiresAt($expiration): self
-    {
-        $this->expiration = $expiration;
-        return $this;
-    }
-
-    /**
-     * @inheritDoc
-     * @param DateInterval|int|null $time
-     * @return static
-     */
-    public function expiresAfter($time): self
-    {
-        if (is_int($time)) {
-            $time = new DateInterval("PT{$time}S");
-        }
-        $this->expiration = $time !== null ? (new DateTime())->add($time) : null;
-        return $this;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getExpiration(): ?DateTimeInterface
-    {
-        return $this->expiration;
-    }
-
-    /**
-     * @inheritDoc
-     * @return mixed
-     */
-    public function get()
+    public function get(): mixed
     {
         if (!$this->isHit) {
             return null;
@@ -150,51 +84,54 @@ final class CacheItem implements CacheItemInterface
     /**
      * @inheritDoc
      */
-    public function serialize(): string
+    public function isHit(): bool
     {
-        return serialize(
-            [
-                'key' => $this->key,
-                'value' => $this->value,
-                'expiration' => $this->expiration !== null ? $this->expiration->getTimestamp() : null,
-                'is_hit' => $this->isHit
-            ]
-        );
-    }
-
-    /**
-     * @inheritDoc
-     * @noinspection UnserializeExploitsInspection
-     */
-    public function unserialize($serialized): void
-    {
-        [
-            'key' => $this->key,
-            'value' => $this->value,
-            'expiration' => $expiration,
-            'is_hit' => $this->isHit
-        ] = (array)unserialize($serialized);
-        $this->expiration = $expiration !== null ? new DateTime("@{$expiration}") : null;
+        return $this->isHit;
     }
 
     /**
      * @inheritDoc
      */
-    public function jsonSerialize(): array
+    public function set(mixed $value): static
     {
-        return [
-            'key' => $this->key,
-            'value' => $this->value,
-            'expiration' => $this->expiration !== null ? $this->expiration->getTimestamp() : null,
-            'is_hit' => $this->isHit
-        ];
+        $this->value = $value;
+        $this->isHit = true;
+        return $this;
     }
 
     /**
      * @inheritDoc
      */
-    public function __toString(): string
+    public function expiresAt(?DateTimeInterface $expiration): static
     {
-        return serialize($this);
+        $this->expiration = $expiration;
+        return $this;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function expiresAfter(DateInterval|int|null $time): static
+    {
+        if ($time === null) {
+            $this->expiration = null;
+            return $this;
+        }
+        if (is_int($time)) {
+            $this->expiration = (new DateTime())->add(new DateInterval("PT{$time}S"));
+            return $this;
+        }
+        $this->expiration = (new DateTime())->add($time);
+        return $this;
+    }
+
+    /**
+     * Get the expiration date of this cache item.
+     *
+     * @return DateTimeInterface|null
+     */
+    public function getExpiration(): ?DateTimeInterface
+    {
+        return $this->expiration;
     }
 }

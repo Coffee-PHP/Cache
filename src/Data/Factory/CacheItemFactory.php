@@ -25,7 +25,6 @@ declare(strict_types=1);
 
 namespace CoffeePhp\Cache\Data\Factory;
 
-use CoffeePhp\Cache\Contract\Data\CacheItemInterface;
 use CoffeePhp\Cache\Contract\Data\Factory\CacheItemFactoryInterface;
 use CoffeePhp\Cache\Contract\Validation\CacheKeyValidatorInterface;
 use CoffeePhp\Cache\Data\CacheItem;
@@ -39,27 +38,23 @@ use DateTimeInterface;
  */
 final class CacheItemFactory implements CacheItemFactoryInterface
 {
-    private CacheKeyValidatorInterface $cacheKeyValidator;
-
     /**
      * CacheItemFactory constructor.
      * @param CacheKeyValidatorInterface $cacheKeyValidator
      */
-    public function __construct(CacheKeyValidatorInterface $cacheKeyValidator)
+    public function __construct(private CacheKeyValidatorInterface $cacheKeyValidator)
     {
-        $this->cacheKeyValidator = $cacheKeyValidator;
     }
 
     /**
      * @inheritDoc
-     * @SuppressWarnings(PHPMD.BooleanArgumentFlag)
      */
     public function create(
-        $key,
-        $value = null,
+        mixed $key,
+        mixed $value = null,
         bool $isHit = false,
         ?DateTimeInterface $expiration = null
-    ): CacheItemInterface {
+    ): CacheItem {
         return new CacheItem(
             $this->cacheKeyValidator,
             $key,

@@ -25,9 +25,11 @@ declare(strict_types=1);
 
 namespace CoffeePhp\Cache\Exception;
 
-use Psr\Cache\CacheException as Psr_Cache_CacheException;
-use Psr\SimpleCache\CacheException as Psr_SimpleCache_CacheException;
+use CoffeePhp\Cache\Enum\CacheError;
+use Psr\Cache\CacheException as Psr6CacheException;
+use Psr\SimpleCache\CacheException as Psr16CacheException;
 use RuntimeException;
+use Throwable;
 
 /**
  * Class CacheException
@@ -35,8 +37,16 @@ use RuntimeException;
  * @author Danny Damsky <dannydamsky99@gmail.com>
  * @since 2020-10-02
  */
-class CacheException extends RuntimeException implements
-    Psr_Cache_CacheException,
-    Psr_SimpleCache_CacheException
+class CacheException extends RuntimeException implements Psr6CacheException, Psr16CacheException
 {
+    /**
+     * CacheException constructor.
+     * @param CacheError $error
+     * @param Throwable|null $previous
+     */
+    public function __construct(CacheError $error, ?Throwable $previous = null)
+    {
+        $message = $error->getMessage() . ($previous !== null ? " ; {$previous->getMessage()}" : '');
+        parent::__construct($message, $error->value, $previous);
+    }
 }

@@ -1,9 +1,9 @@
 <?php
 
 /**
- * CacheKeyValidatorInterface.php
+ * CacheKeyValidatorException.php
  *
- * Copyright 2020 Danny Damsky
+ * Copyright 2021 Danny Damsky
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -18,38 +18,25 @@
  *
  * @package coffeephp\cache
  * @author Danny Damsky <dannydamsky99@gmail.com>
- * @since 2020-10-02
+ * @since 2021-03-27
  */
 
 declare(strict_types=1);
 
-namespace CoffeePhp\Cache\Contract\Validation;
+namespace CoffeePhp\Cache\Exception;
 
-use CoffeePhp\Cache\Exception\CacheInvalidArgumentException;
+use InvalidArgumentException;
+use Psr\Cache\InvalidArgumentException as Psr6InvalidArgumentException;
+use Psr\SimpleCache\InvalidArgumentException as Psr16InvalidArgumentException;
 
 /**
- * Interface CacheKeyValidatorInterface
+ * Class CacheKeyValidatorException
  * @package coffeephp\cache
  * @author Danny Damsky <dannydamsky99@gmail.com>
- * @since 2020-10-02
+ * @since 2021-03-27
  */
-interface CacheKeyValidatorInterface
+class CacheKeyValidatorException extends InvalidArgumentException implements
+    Psr6InvalidArgumentException,
+    Psr16InvalidArgumentException
 {
-    /**
-     * Validate the given key.
-     *
-     * @param mixed $key
-     * @return string
-     * @throws CacheInvalidArgumentException
-     */
-    public function validate(mixed $key): string;
-
-    /**
-     * Validate the given keys.
-     *
-     * @param mixed $keys
-     * @return array<int, string>
-     * @throws CacheInvalidArgumentException
-     */
-    public function validateMultiple(mixed $keys): array;
 }

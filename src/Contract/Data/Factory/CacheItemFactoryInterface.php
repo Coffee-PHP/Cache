@@ -25,9 +25,9 @@ declare(strict_types=1);
 
 namespace CoffeePhp\Cache\Contract\Data\Factory;
 
-use CoffeePhp\Cache\Contract\Data\CacheItemInterface;
 use CoffeePhp\Cache\Exception\CacheInvalidArgumentException;
 use DateTimeInterface;
+use Psr\Cache\CacheItemInterface;
 
 /**
  * Interface CacheItemFactoryInterface
@@ -46,11 +46,10 @@ interface CacheItemFactoryInterface
      * @param DateTimeInterface|null $expiration
      * @return CacheItemInterface
      * @throws CacheInvalidArgumentException
-     * @SuppressWarnings(PHPMD.BooleanArgumentFlag)
      */
     public function create(
-        $key,
-        $value = null,
+        mixed $key,
+        mixed $value = null,
         bool $isHit = false,
         ?DateTimeInterface $expiration = null
     ): CacheItemInterface;

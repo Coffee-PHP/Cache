@@ -25,8 +25,8 @@ declare(strict_types=1);
 
 namespace CoffeePhp\Cache\Contract;
 
-use CoffeePhp\Cache\Contract\Data\CacheInterface;
-use CoffeePhp\Cache\Contract\Data\CacheItemPoolInterface;
+use Psr\Cache\CacheItemPoolInterface;
+use Psr\SimpleCache\CacheInterface;
 
 /**
  * Interface CacheManagerInterface

@@ -1,7 +1,7 @@
 <?php
 
 /**
- * MockCacheItemPool.php
+ * FakeCacheItemPool.php
  *
  * Copyright 2020 Danny Damsky
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,77 +23,52 @@
 
 declare(strict_types=1);
 
-namespace CoffeePhp\Cache\Test\Mock;
+namespace CoffeePhp\Cache\Test\Fake;
 
-use CoffeePhp\Cache\Contract\Data\Factory\CacheItemFactoryInterface;
-use CoffeePhp\Cache\Contract\Validation\CacheKeyValidatorInterface;
 use CoffeePhp\Cache\Data\AbstractCacheItemPool;
 use Psr\Cache\CacheItemInterface;
-use Psr\Log\LoggerInterface;
 
 /**
- * Class MockCacheItemPool
+ * Class FakeCacheItemPool
  * @package coffeephp\cache
  * @author Danny Damsky <dannydamsky99@gmail.com>
  * @since 2020-10-03
  */
-final class MockCacheItemPool extends AbstractCacheItemPool
+final class FakeCacheItemPool extends AbstractCacheItemPool
 {
     private array $fakeCache = [];
     private array $deferred = [];
 
-    private CacheKeyValidatorInterface $keyValidator;
-
-    /**
-     * MockCacheItemPool constructor.
-     * @param CacheItemFactoryInterface $itemFactory
-     * @param CacheKeyValidatorInterface $keyValidator
-     * @param LoggerInterface $logger
-     */
-    public function __construct(
-        CacheItemFactoryInterface $itemFactory,
-        CacheKeyValidatorInterface $keyValidator,
-        LoggerInterface $logger
-    ) {
-        parent::__construct($itemFactory, $logger);
-        $this->keyValidator = $keyValidator;
-    }
-
     /**
      * @inheritDoc
      */
-    protected function performGetItem($key): CacheItemInterface
+    protected function get(string $key): CacheItemInterface
     {
-        $this->keyValidator->validate($key);
         return $this->itemFactory->create($key, $this->fakeCache[$key] ?? null, true);
     }
 
     /**
      * @inheritDoc
      */
-    protected function performGetItems(array $keys): iterable
+    protected function getMultiple(string ...$keys): iterable
     {
-        $keys = $this->keyValidator->validateMultiple($keys);
-        $values = [];
         foreach ($keys as $key) {
-            $values[$key] = $this->getItem($key);
+            yield $key => $this->get($key);
         }
-        return $values;
     }
 
     /**
      * @inheritDoc
      */
-    protected function performHasItem($key): bool
+    protected function has(string $key): bool
     {
-        $key = $this->keyValidator->validate($key);
         return isset($this->fakeCache[$key]);
     }
 
     /**
      * @inheritDoc
      */
-    protected function performClear(): bool
+    protected function deleteAll(): bool
     {
         $this->fakeCache = [];
         return true;
@@ -102,9 +77,8 @@ final class MockCacheItemPool extends AbstractCacheItemPool
     /**
      * @inheritDoc
      */
-    protected function performDeleteItem($key): bool
+    protected function delete(string $key): bool
     {
-        $this->keyValidator->validate($key);
         unset($this->fakeCache[$key]);
         return true;
     }
@@ -112,11 +86,10 @@ final class MockCacheItemPool extends AbstractCacheItemPool
     /**
      * @inheritDoc
      */
-    protected function performDeleteItems(array $keys): bool
+    protected function deleteMultiple(string ...$keys): bool
     {
-        $this->keyValidator->validateMultiple($keys);
         foreach ($keys as $key) {
-            unset($this->fakeCache[$key]);
+            $this->delete($key);
         }
         return true;
     }
@@ -124,7 +97,7 @@ final class MockCacheItemPool extends AbstractCacheItemPool
     /**
      * @inheritDoc
      */
-    protected function performSave(CacheItemInterface $item): bool
+    protected function set(CacheItemInterface $item): bool
     {
         $this->fakeCache[$item->getKey()] = $item->get();
         return true;
@@ -133,7 +106,7 @@ final class MockCacheItemPool extends AbstractCacheItemPool
     /**
      * @inheritDoc
      */
-    protected function performSaveDeferred(CacheItemInterface $item): bool
+    protected function setDeferred(CacheItemInterface $item): bool
     {
         $this->deferred[$item->getKey()] = $item;
         return true;
@@ -142,7 +115,7 @@ final class MockCacheItemPool extends AbstractCacheItemPool
     /**
      * @inheritDoc
      */
-    protected function performCommit(): bool
+    protected function commitDeferred(): bool
     {
         foreach ($this->deferred as $key => $value) {
             $this->save($value);

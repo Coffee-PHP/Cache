@@ -26,7 +26,9 @@ declare(strict_types=1);
 namespace CoffeePhp\Cache\Test\Unit\Enum;
 
 use CoffeePhp\Cache\Enum\CacheError;
-use CoffeePhp\Enum\Test\Unit\AbstractEnumTest;
+use CoffeePhp\QualityTools\TestCase;
+
+use function PHPUnit\Framework\assertSame;
 
 /**
  * Class CacheErrorTest
@@ -35,14 +37,63 @@ use CoffeePhp\Enum\Test\Unit\AbstractEnumTest;
  * @since 2020-10-03
  * @see CacheError
  */
-final class CacheErrorTest extends AbstractEnumTest
+final class CacheErrorTest extends TestCase
 {
-
-    /**
-     * @inheritDoc
-     */
-    protected function getClassesToTest(): array
+    public function testDataIntegrity(): void
     {
-        return [CacheError::class];
+        assertSame('GET', CacheError::GET()->name);
+        assertSame(32, CacheError::GET()->value);
+        assertSame('CACHESTATE[32]: Failed to fetch a value from cache', CacheError::GET()->getMessage());
+
+        assertSame('GET_MULTIPLE', CacheError::GET_MULTIPLE()->name);
+        assertSame(33, CacheError::GET_MULTIPLE()->value);
+        assertSame(
+            'CACHESTATE[33]: Failed to fetch multiple values from cache',
+            CacheError::GET_MULTIPLE()->getMessage()
+        );
+
+        assertSame('SET', CacheError::SET()->name);
+        assertSame(64, CacheError::SET()->value);
+        assertSame('CACHESTATE[64]: Failed to set a value in cache', CacheError::SET()->getMessage());
+
+        assertSame('SET_MULTIPLE', CacheError::SET_MULTIPLE()->name);
+        assertSame(65, CacheError::SET_MULTIPLE()->value);
+        assertSame('CACHESTATE[65]: Failed to set multiple values in cache', CacheError::SET_MULTIPLE()->getMessage());
+
+        assertSame('SET_DEFERRED', CacheError::SET_DEFERRED()->name);
+        assertSame(66, CacheError::SET_DEFERRED()->value);
+        assertSame('CACHESTATE[66]: Failed to set a deferred value in cache', CacheError::SET_DEFERRED()->getMessage());
+
+        assertSame('DELETE', CacheError::DELETE()->name);
+        assertSame(128, CacheError::DELETE()->value);
+        assertSame('CACHESTATE[128]: Failed to delete a value from cache', CacheError::DELETE()->getMessage());
+
+        assertSame('DELETE_MULTIPLE', CacheError::DELETE_MULTIPLE()->name);
+        assertSame(129, CacheError::DELETE_MULTIPLE()->value);
+        assertSame(
+            'CACHESTATE[129]: Failed to delete multiple values from cache',
+            CacheError::DELETE_MULTIPLE()->getMessage()
+        );
+
+        assertSame('CLEAR', CacheError::CLEAR()->name);
+        assertSame(256, CacheError::CLEAR()->value);
+        assertSame(
+            'CACHESTATE[256]: Failed to clear cache',
+            CacheError::CLEAR()->getMessage()
+        );
+
+        assertSame('HAS', CacheError::HAS()->name);
+        assertSame(512, CacheError::HAS()->value);
+        assertSame(
+            'CACHESTATE[512]: Failed to check for the availability of a key in cache',
+            CacheError::HAS()->getMessage()
+        );
+
+        assertSame('COMMIT', CacheError::COMMIT()->name);
+        assertSame(1024, CacheError::COMMIT()->value);
+        assertSame(
+            'CACHESTATE[1024]: Failed to commit a cache transaction',
+            CacheError::COMMIT()->getMessage()
+        );
     }
 }

@@ -19,17 +19,26 @@
  * @package coffeephp\cache
  * @author Danny Damsky <dannydamsky99@gmail.com>
  * @since 2020-10-01
+ * @noinspection PhpRedundantCatchClauseInspection
  */
 
 declare(strict_types=1);
 
 namespace CoffeePhp\Cache\Data;
 
-use CoffeePhp\Cache\Contract\Data\CacheItemPoolInterface;
 use CoffeePhp\Cache\Contract\Data\Factory\CacheItemFactoryInterface;
+use CoffeePhp\Cache\Contract\Validation\CacheKeyValidatorInterface;
+use CoffeePhp\Cache\Enum\CacheError;
+use CoffeePhp\Cache\Exception\CacheException;
+use CoffeePhp\Cache\Exception\CacheInvalidArgumentException;
 use DateInterval;
+use DateTime;
 use Psr\Cache\CacheItemInterface;
-use Psr\Log\LoggerInterface;
+use Psr\Cache\CacheItemPoolInterface;
+use Psr\Cache\InvalidArgumentException as Psr6InvalidArgumentException;
+use Psr\SimpleCache\CacheInterface;
+use Psr\SimpleCache\InvalidArgumentException as Psr16InvalidArgumentException;
+use Throwable;
 
 /**
  * Class Cache
@@ -37,119 +46,184 @@ use Psr\Log\LoggerInterface;
  * @author Danny Damsky <dannydamsky99@gmail.com>
  * @since 2020-10-01
  */
-final class Cache extends AbstractCache
+final class Cache implements CacheInterface
 {
-    private CacheItemFactoryInterface $itemFactory;
-    private CacheItemPoolInterface $pool;
-
     /**
      * Cache constructor.
      * @param CacheItemFactoryInterface $itemFactory
      * @param CacheItemPoolInterface $pool
-     * @param LoggerInterface $logger
+     * @param CacheKeyValidatorInterface $keyValidator
      */
     public function __construct(
-        CacheItemFactoryInterface $itemFactory,
-        CacheItemPoolInterface $pool,
-        LoggerInterface $logger
+        private CacheItemFactoryInterface $itemFactory,
+        private CacheItemPoolInterface $pool,
+        private CacheKeyValidatorInterface $keyValidator,
     ) {
-        parent::__construct($logger);
-        $this->itemFactory = $itemFactory;
-        $this->pool = $pool;
     }
 
     /**
      * @inheritDoc
      */
-    protected function performGet($key, $default)
+    public function get($key, $default = null)
     {
-        return $this->pool->getItem($key)->get() ?? $default;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    protected function performSet($key, $value, $ttl): bool
-    {
-        $expiration = $this->convertTtlToDateTime($ttl);
-        $item = $this->itemFactory->create($key, $value, true, $expiration);
-        return $this->pool->save($item);
-    }
-
-    /**
-     * @inheritDoc
-     */
-    protected function performDelete($key): bool
-    {
-        return $this->pool->deleteItem($key);
-    }
-
-    /**
-     * @inheritDoc
-     */
-    protected function performClear(): bool
-    {
-        return $this->pool->clear();
-    }
-
-    /**
-     * @inheritDoc
-     * @psalm-suppress MixedArgumentTypeCoercion
-     */
-    protected function performGetMultiple($keys, $default): iterable
-    {
-        $items = $this->pool->getItems([...$keys]);
-        return $this->generateGetMultipleResults($items, $default);
-    }
-
-    /**
-     * @param iterable|CacheItemInterface[] $items
-     * @param mixed $default
-     * @return iterable
-     * @psalm-param iterable<string, CacheItemInterface> $items
-     * @phpstan-param iterable<string, CacheItemInterface> $items
-     * @psalm-return iterable<string, mixed>
-     * @phpstan-return iterable<string, mixed>
-     */
-    private function generateGetMultipleResults(iterable $items, $default): iterable
-    {
-        foreach ($items as $key => $value) {
-            yield $key => $value->get() ?? $default;
+        try {
+            $key = $this->keyValidator->validate($key);
+            return $this->pool->getItem($key)->get() ?? $default;
+        } catch (CacheException $e) {
+            throw $e;
+        } catch (Psr16InvalidArgumentException | Psr6InvalidArgumentException $e) {
+            throw new CacheInvalidArgumentException(CacheError::GET(), $e);
+        } catch (Throwable $e) {
+            throw new CacheException(CacheError::GET(), $e);
         }
     }
 
     /**
      * @inheritDoc
      */
-    protected function performSetMultiple($values, $ttl): bool
+    public function set($key, $value, $ttl = null): bool
     {
-        $expiration = $this->convertTtlToDateTime($ttl);
-        /**
-         * @var mixed $key
-         * @var mixed $value
-         */
-        foreach ($values as $key => $value) {
+        try {
+            $key = $this->keyValidator->validate($key);
+            $expiration = $this->convertTtlToDateTime($ttl);
             $item = $this->itemFactory->create($key, $value, true, $expiration);
-            if (!$this->pool->saveDeferred($item)) {
-                return false;
-            }
+            return $this->pool->save($item);
+        } catch (CacheException $e) {
+            throw $e;
+        } catch (Psr16InvalidArgumentException | Psr6InvalidArgumentException $e) {
+            throw new CacheInvalidArgumentException(CacheError::SET(), $e);
+        } catch (Throwable $e) {
+            throw new CacheException(CacheError::SET(), $e);
         }
-        return $this->pool->commit();
     }
 
     /**
      * @inheritDoc
      */
-    protected function performDeleteMultiple($keys): bool
+    public function delete($key): bool
     {
-        return $this->pool->deleteItems([...$keys]);
+        try {
+            $key = $this->keyValidator->validate($key);
+            return $this->pool->deleteItem($key);
+        } catch (CacheException $e) {
+            throw $e;
+        } catch (Psr16InvalidArgumentException | Psr6InvalidArgumentException $e) {
+            throw new CacheInvalidArgumentException(CacheError::DELETE(), $e);
+        } catch (Throwable $e) {
+            throw new CacheException(CacheError::DELETE(), $e);
+        }
+    }
+
+    /**
+     * @inheritDoc
+     * @throws Throwable|Psr16InvalidArgumentException
+     */
+    public function clear(): bool
+    {
+        try {
+            return $this->pool->clear();
+        } catch (CacheException $e) {
+            throw $e;
+        } catch (Psr16InvalidArgumentException | Psr6InvalidArgumentException $e) {
+            throw new CacheInvalidArgumentException(CacheError::CLEAR(), $e);
+        } catch (Throwable $e) {
+            throw new CacheException(CacheError::CLEAR(), $e);
+        }
     }
 
     /**
      * @inheritDoc
      */
-    protected function performHas($key): bool
+    public function getMultiple($keys, $default = null): iterable
     {
-        return $this->pool->hasItem($key);
+        try {
+            $keys = $this->keyValidator->validateMultiple($keys);
+            /** @var iterable<string, CacheItemInterface> $items */
+            $items = $this->pool->getItems([...$keys]);
+            foreach ($items as $key => $value) {
+                yield $key => $value->get() ?? $default;
+            }
+        } catch (CacheException $e) {
+            throw $e;
+        } catch (Psr16InvalidArgumentException | Psr6InvalidArgumentException $e) {
+            throw new CacheInvalidArgumentException(CacheError::GET_MULTIPLE(), $e);
+        } catch (Throwable $e) {
+            throw new CacheException(CacheError::GET_MULTIPLE(), $e);
+        }
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function setMultiple($values, $ttl = null): bool
+    {
+        try {
+            $expiration = $this->convertTtlToDateTime($ttl);
+            foreach ($values as $key => $value) {
+                $item = $this->itemFactory->create($key, $value, true, $expiration);
+                if (!$this->pool->saveDeferred($item)) {
+                    return false;
+                }
+            }
+            return $this->pool->commit();
+        } catch (CacheException $e) {
+            throw $e;
+        } catch (Psr16InvalidArgumentException | Psr6InvalidArgumentException $e) {
+            throw new CacheInvalidArgumentException(CacheError::SET_MULTIPLE(), $e);
+        } catch (Throwable $e) {
+            throw new CacheException(CacheError::SET_MULTIPLE(), $e);
+        }
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function deleteMultiple($keys): bool
+    {
+        try {
+            $keys = $this->keyValidator->validateMultiple($keys);
+            return $this->pool->deleteItems([...$keys]);
+        } catch (CacheException $e) {
+            throw $e;
+        } catch (Psr16InvalidArgumentException | Psr6InvalidArgumentException $e) {
+            throw new CacheInvalidArgumentException(CacheError::DELETE_MULTIPLE(), $e);
+        } catch (Throwable $e) {
+            throw new CacheException(CacheError::DELETE_MULTIPLE(), $e);
+        }
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function has($key): bool
+    {
+        try {
+            $key = $this->keyValidator->validate($key);
+            return $this->pool->hasItem($key);
+        } catch (CacheException $e) {
+            throw $e;
+        } catch (Psr16InvalidArgumentException | Psr6InvalidArgumentException $e) {
+            throw new CacheInvalidArgumentException(CacheError::HAS(), $e);
+        } catch (Throwable $e) {
+            throw new CacheException(CacheError::HAS(), $e);
+        }
+    }
+
+    /**
+     * Convert the given TTL parameter to a date time.
+     * Return null if the given parameter is null.
+     *
+     * @param DateInterval|int|null $ttl
+     * @return DateTime|null
+     */
+    private function convertTtlToDateTime(mixed $ttl): ?DateTime
+    {
+        if ($ttl === null) {
+            return null;
+        }
+        if (is_int($ttl)) {
+            return (new DateTime())->add(new DateInterval("PT{$ttl}S"));
+        }
+        return (new DateTime())->add($ttl);
     }
 }

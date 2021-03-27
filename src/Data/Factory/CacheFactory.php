@@ -25,12 +25,11 @@ declare(strict_types=1);
 
 namespace CoffeePhp\Cache\Data\Factory;
 
-use CoffeePhp\Cache\Contract\Data\CacheInterface;
-use CoffeePhp\Cache\Contract\Data\CacheItemPoolInterface;
 use CoffeePhp\Cache\Contract\Data\Factory\CacheFactoryInterface;
 use CoffeePhp\Cache\Contract\Data\Factory\CacheItemFactoryInterface;
+use CoffeePhp\Cache\Contract\Validation\CacheKeyValidatorInterface;
 use CoffeePhp\Cache\Data\Cache;
-use Psr\Log\LoggerInterface;
+use Psr\Cache\CacheItemPoolInterface;
 
 /**
  * Class CacheFactory
@@ -40,31 +39,22 @@ use Psr\Log\LoggerInterface;
  */
 final class CacheFactory implements CacheFactoryInterface
 {
-    private CacheItemFactoryInterface $cacheItemFactory;
-    private LoggerInterface $logger;
-
     /**
      * CacheFactory constructor.
-     * @param CacheItemFactoryInterface $cacheItemFactory
-     * @param LoggerInterface $logger
+     * @param CacheItemFactoryInterface $itemFactory
+     * @param CacheKeyValidatorInterface $keyValidator
      */
     public function __construct(
-        CacheItemFactoryInterface $cacheItemFactory,
-        LoggerInterface $logger
+        private CacheItemFactoryInterface $itemFactory,
+        private CacheKeyValidatorInterface $keyValidator
     ) {
-        $this->cacheItemFactory = $cacheItemFactory;
-        $this->logger = $logger;
     }
 
     /**
      * @inheritDoc
      */
-    public function create(CacheItemPoolInterface $cacheItemPool): CacheInterface
+    public function create(CacheItemPoolInterface $cacheItemPool): Cache
     {
-        return new Cache(
-            $this->cacheItemFactory,
-            $cacheItemPool,
-            $this->logger
-        );
+        return new Cache($this->itemFactory, $cacheItemPool, $this->keyValidator);
     }
 }

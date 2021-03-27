@@ -25,12 +25,11 @@ declare(strict_types=1);
 
 namespace CoffeePhp\Cache\Test\Unit\Validation;
 
-use CoffeePhp\Cache\Exception\CacheInvalidArgumentException;
+use CoffeePhp\Cache\Exception\CacheKeyValidatorException;
+use CoffeePhp\Cache\Test\Unit\AbstractCacheTest;
 use CoffeePhp\Cache\Validation\CacheKeyValidator;
-use PHPUnit\Framework\TestCase;
 
 use function PHPUnit\Framework\assertSame;
-use function PHPUnit\Framework\assertTrue;
 
 /**
  * Class CacheKeyValidatorTest
@@ -39,20 +38,16 @@ use function PHPUnit\Framework\assertTrue;
  * @since 2020-10-03
  * @see CacheKeyValidator
  */
-final class CacheKeyValidatorTest extends TestCase
+final class CacheKeyValidatorTest extends AbstractCacheTest
 {
     private CacheKeyValidator $cacheKeyValidator;
 
     /**
-     * CacheKeyValidatorTest constructor.
-     * @param string|null $name
-     * @param array $data
-     * @param string $dataName
+     * @before
      */
-    public function __construct(?string $name = null, array $data = [], string $dataName = '')
+    public function setupDependencies(): void
     {
-        parent::__construct($name, $data, $dataName);
-        $this->cacheKeyValidator = new CacheKeyValidator();
+        $this->cacheKeyValidator = $this->getClass(CacheKeyValidator::class);
     }
 
     /**
@@ -60,22 +55,17 @@ final class CacheKeyValidatorTest extends TestCase
      */
     public function testValidate(): void
     {
-        try {
-            $this->cacheKeyValidator->validate(2);
-            assertTrue(false);
-        } catch (CacheInvalidArgumentException $e) {
-            assertSame('The given key is not a string.', $e->getMessage());
-        }
-        try {
-            $this->cacheKeyValidator->validate('');
-            assertTrue(false);
-        } catch (CacheInvalidArgumentException $e) {
-            assertSame('The given key is empty.', $e->getMessage());
-        }
-        assertSame(
-            'abc',
-            $this->cacheKeyValidator->validate('abc')
+        self::assertException(
+            fn() => $this->cacheKeyValidator->validate(2),
+            CacheKeyValidatorException::class,
+            'The given key is not a string'
         );
+        self::assertException(
+            fn() => $this->cacheKeyValidator->validate(''),
+            CacheKeyValidatorException::class,
+            'The given key is empty'
+        );
+        assertSame('abc', $this->cacheKeyValidator->validate('abc'));
     }
 
     /**
@@ -83,18 +73,21 @@ final class CacheKeyValidatorTest extends TestCase
      */
     public function testValidateMultiple(): void
     {
-        try {
-            $this->cacheKeyValidator->validateMultiple(['abc', 2, 'test']);
-            assertTrue(false);
-        } catch (CacheInvalidArgumentException $e) {
-            assertSame('The given key is not a string.', $e->getMessage());
-        }
-        try {
-            $this->cacheKeyValidator->validateMultiple(['abc', '', 'test']);
-            assertTrue(false);
-        } catch (CacheInvalidArgumentException $e) {
-            assertSame('The given key is empty.', $e->getMessage());
-        }
+        self::assertException(
+            fn() => $this->cacheKeyValidator->validateMultiple(2),
+            CacheKeyValidatorException::class,
+            'The given keys are not iterable'
+        );
+        self::assertException(
+            fn() => $this->cacheKeyValidator->validateMultiple(['abc', 2, 'test']),
+            CacheKeyValidatorException::class,
+            'The given key is not a string'
+        );
+        self::assertException(
+            fn() => $this->cacheKeyValidator->validateMultiple(['abc', '', 'test']),
+            CacheKeyValidatorException::class,
+            'The given key is empty'
+        );
         assertSame(
             ['abc', 'test2', 'test'],
             $this->cacheKeyValidator->validateMultiple(['abc', 'test2', 'test'])

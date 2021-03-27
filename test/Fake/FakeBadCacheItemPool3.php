@@ -1,9 +1,9 @@
 <?php
 
 /**
- * CacheItemPoolInterface.php
+ * FakeBadCacheItemPool3.php
  *
- * Copyright 2020 Danny Damsky
+ * Copyright 2021 Danny Damsky
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -18,70 +18,95 @@
  *
  * @package coffeephp\cache
  * @author Danny Damsky <dannydamsky99@gmail.com>
- * @since 2020-10-01
+ * @since 2021-03-27
  */
 
 declare(strict_types=1);
 
-namespace CoffeePhp\Cache\Contract\Data;
+namespace CoffeePhp\Cache\Test\Fake;
 
 use Psr\Cache\CacheItemInterface;
-use Psr\Cache\CacheItemPoolInterface as Psr_Cache_CacheItemPoolInterface;
+use Psr\Cache\CacheItemPoolInterface;
+use RuntimeException;
 
 /**
- * Interface CacheItemPoolInterface
+ * Class FakeBadCacheItemPool3
  * @package coffeephp\cache
  * @author Danny Damsky <dannydamsky99@gmail.com>
- * @since 2020-10-01
+ * @since 2021-03-27
  */
-interface CacheItemPoolInterface extends Psr_Cache_CacheItemPoolInterface
+final class FakeBadCacheItemPool3 implements CacheItemPoolInterface
 {
-    /**
-     * @inheritDoc
-     */
-    public function getItem($key): CacheItemInterface;
-
-    /**
-     * @inheritDoc
-     * @return iterable|CacheItemInterface[]
-     * @psalm-return iterable<string, CacheItemInterface>
-     * @phpstan-return iterable<string, CacheItemInterface>
-     * @psalm-suppress ImplementedReturnTypeMismatch
-     */
-    public function getItems(array $keys = []): iterable;
 
     /**
      * @inheritDoc
      */
-    public function hasItem($key): bool;
+    public function getItem(string $key): CacheItemInterface
+    {
+        throw new RuntimeException('test get item');
+    }
 
     /**
      * @inheritDoc
      */
-    public function clear(): bool;
+    public function getItems(array $keys = []): iterable
+    {
+        throw new RuntimeException('test get items');
+    }
 
     /**
      * @inheritDoc
      */
-    public function deleteItem($key): bool;
+    public function hasItem(string $key): bool
+    {
+        return false;
+    }
 
     /**
      * @inheritDoc
      */
-    public function deleteItems(array $keys): bool;
+    public function clear(): bool
+    {
+        return false;
+    }
 
     /**
      * @inheritDoc
      */
-    public function save(CacheItemInterface $item): bool;
+    public function deleteItem(string $key): bool
+    {
+        return false;
+    }
 
     /**
      * @inheritDoc
      */
-    public function saveDeferred(CacheItemInterface $item): bool;
+    public function deleteItems(array $keys): bool
+    {
+        return false;
+    }
 
     /**
      * @inheritDoc
      */
-    public function commit(): bool;
+    public function save(CacheItemInterface $item): bool
+    {
+        return false;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function saveDeferred(CacheItemInterface $item): bool
+    {
+        return false;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function commit(): bool
+    {
+        return false;
+    }
 }

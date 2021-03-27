@@ -8,6 +8,9 @@
             "email": "dannydamsky99@gmail.com"
         }
     ],
+    "version": "1.1.0",
+    "time": "2021-03-27",
+    "readme": "README.md",
     "keywords": [
         "coffeephp",
         "coffee",
@@ -17,19 +20,17 @@
         "storage"
     ],
     "require": {
-        "php": ">=7.4",
+        "php": ">=8.0",
         "ext-apcu": "*",
         "ext-json": "*",
         "coffeephp/enum": "1.*",
-        "psr/cache": "*",
-        "psr/log": "*",
-        "psr/simple-cache": "*"
+        "psr/cache": "^3.0",
+        "psr/simple-cache": "^1.0"
     },
     "require-dev": {
         "coffeephp/component-registry": "1.*",
-        "coffeephp/log": "1.*",
         "coffeephp/quality-tools": "1.*",
-        "roave/security-advisories": "dev-master"
+        "roave/security-advisories": "dev-latest"
     },
     "autoload": {
         "psr-4": {
@@ -38,9 +39,8 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "CoffeePhp\\Enum\\Test\\": "vendor/coffeephp/enum/test/",
+            "CoffeePhp\\Cache\\Test\\Fake\\": "test/Fake/",
             "CoffeePhp\\Cache\\Test\\Integration\\": "test/Integration/",
-            "CoffeePhp\\Cache\\Test\\Mock\\": "test/Mock/",
             "CoffeePhp\\Cache\\Test\\Unit\\": "test/Unit/"
         }
     },
@@ -53,29 +53,13 @@
         "optimize-autoloader": true,
         "apcu-autoloader": true
     },
-    "extra": {
-        "coffeephp": {
-            "registry": [
-                {
-                    "registrar": "CoffeePhp\\Cache\\Integration\\CacheComponentRegistrar"
-                }
-            ]
-        }
+    "provide": {
+        "psr/cache-implementation": "3.0",
+        "psr/simple-cache-implementation": "1.0"
     },
     "scripts": {
-        "coffeephp:exec:phpcbf": "coffeephp_exec_phpcbf",
-        "coffeephp:exec:phpcs": "coffeephp_exec_phpcs",
-        "coffeephp:exec:phpmd": "coffeephp_exec_phpmd",
-        "coffeephp:exec:phpstan-analyse": "coffeephp_exec_phpstan_analyse",
         "coffeephp:exec:phpunit": "coffeephp_exec_phpunit --testsuite unit,integration",
         "coffeephp:exec:psalm": "coffeephp_exec_psalm",
-        "coffeephp:exec:psalm-alter": "coffeephp_exec_psalm_alter",
-        "coffeephp:exec:publish": "coffeephp_exec_publish",
-        "coffeephp:exec:analyse": [
-            "@coffeephp:exec:phpunit",
-            "@coffeephp:exec:psalm",
-            "@coffeephp:exec:phpcs",
-            "@coffeephp:exec:phpmd"
-        ]
+        "coffeephp:exec:publish": "coffeephp_exec_publish"
     }
 }

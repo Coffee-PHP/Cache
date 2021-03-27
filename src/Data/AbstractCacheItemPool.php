@@ -19,18 +19,22 @@
  * @package coffeephp\cache
  * @author Danny Damsky <dannydamsky99@gmail.com>
  * @since 2020-10-02
+ * @noinspection PhpRedundantCatchClauseInspection
  */
 
 declare(strict_types=1);
 
 namespace CoffeePhp\Cache\Data;
 
-use CoffeePhp\Cache\Contract\Data\CacheItemPoolInterface;
 use CoffeePhp\Cache\Contract\Data\Factory\CacheItemFactoryInterface;
+use CoffeePhp\Cache\Contract\Validation\CacheKeyValidatorInterface;
 use CoffeePhp\Cache\Enum\CacheError;
+use CoffeePhp\Cache\Exception\CacheException;
+use CoffeePhp\Cache\Exception\CacheInvalidArgumentException;
 use Psr\Cache\CacheItemInterface;
-use Psr\Cache\InvalidArgumentException;
-use Psr\Log\LoggerInterface;
+use Psr\Cache\CacheItemPoolInterface;
+use Psr\Cache\InvalidArgumentException as Psr6InvalidArgumentException;
+use Psr\SimpleCache\InvalidArgumentException as Psr16InvalidArgumentException;
 use Throwable;
 
 /**
@@ -41,108 +45,97 @@ use Throwable;
  */
 abstract class AbstractCacheItemPool implements CacheItemPoolInterface
 {
-    protected CacheItemFactoryInterface $itemFactory;
-    private LoggerInterface $logger;
-
     /**
      * AbstractCacheItemPool constructor.
      * @param CacheItemFactoryInterface $itemFactory
-     * @param LoggerInterface $logger
+     * @param CacheKeyValidatorInterface $keyValidator
      */
-    public function __construct(CacheItemFactoryInterface $itemFactory, LoggerInterface $logger)
-    {
-        $this->itemFactory = $itemFactory;
-        $this->logger = $logger;
+    public function __construct(
+        protected CacheItemFactoryInterface $itemFactory,
+        private CacheKeyValidatorInterface $keyValidator,
+    ) {
     }
 
     /**
      * @inheritDoc
-     * @psalm-suppress InvalidCatch
      */
-    final public function getItem($key): CacheItemInterface
+    final public function getItem(string $key): CacheItemInterface
     {
         try {
-            return $this->performGetItem($key);
-        } catch (InvalidArgumentException $e) {
+            $key = $this->keyValidator->validate($key);
+            return $this->get($key);
+        } catch (CacheException $e) {
             throw $e;
+        } catch (Psr6InvalidArgumentException | Psr16InvalidArgumentException $e) {
+            throw new CacheInvalidArgumentException(CacheError::GET(), $e);
         } catch (Throwable $e) {
-            $this->logException(CacheError::GET(), $e);
-            return $this->itemFactory->create($key);
+            throw new CacheException(CacheError::GET(), $e);
         }
     }
 
     /**
-     * Perform the operation specified in {@see \Psr\Cache\CacheItemPoolInterface::getItem()}.
+     * Get the cached item for the given key.
      *
-     * @param mixed $key
+     * @param string $key
+     *   A string key that has already passed the PSR validation checks.
+     *
      * @return CacheItemInterface
-     * @throws InvalidArgumentException
-     * @psalm-suppress InvalidThrow
      */
-    abstract protected function performGetItem($key): CacheItemInterface;
+    abstract protected function get(string $key): CacheItemInterface;
 
     /**
      * @inheritDoc
-     * @return iterable|CacheItemInterface[]
-     * @psalm-return iterable<string, CacheItemInterface>
-     * @phpstan-return iterable<string, CacheItemInterface>
-     * @psalm-suppress ImplementedReturnTypeMismatch
-     * @psalm-suppress InvalidCatch
      */
     final public function getItems(array $keys = []): iterable
     {
         try {
-            return $this->performGetItems($keys);
-        } catch (InvalidArgumentException $e) {
+            $keys = $this->keyValidator->validateMultiple($keys);
+            return $this->getMultiple(...$keys);
+        } catch (CacheException $e) {
             throw $e;
+        } catch (Psr6InvalidArgumentException | Psr16InvalidArgumentException $e) {
+            throw new CacheInvalidArgumentException(CacheError::GET_MULTIPLE(), $e);
         } catch (Throwable $e) {
-            $this->logException(CacheError::GET_MULTIPLE(), $e);
-            $defaults = [];
-            /** @var string $key */
-            foreach ($keys as $key) {
-                $defaults[$key] = $this->itemFactory->create($key);
-            }
-            return $defaults;
+            throw new CacheException(CacheError::GET_MULTIPLE(), $e);
         }
     }
 
     /**
-     * Perform the operation specified in {@see \Psr\Cache\CacheItemPoolInterface::getItems()}.
+     * Get the cached items for the given keys.
      *
-     * @param array $keys
-     * @return iterable|CacheItemInterface[]
-     * @throws InvalidArgumentException
-     * @psalm-return iterable<string, CacheItemInterface>
-     * @phpstan-return iterable<string, CacheItemInterface>
-     * @psalm-suppress InvalidThrow
+     * @param string ...$keys
+     *  String keys that have already passed the PSR validation checks.
+     *
+     * @return iterable<string, CacheItemInterface>
      */
-    abstract protected function performGetItems(array $keys): iterable;
+    abstract protected function getMultiple(string ...$keys): iterable;
 
     /**
      * @inheritDoc
-     * @psalm-suppress InvalidCatch
      */
-    final public function hasItem($key): bool
+    final public function hasItem(string $key): bool
     {
         try {
-            return $this->performHasItem($key);
-        } catch (InvalidArgumentException $e) {
+            $key = $this->keyValidator->validate($key);
+            return $this->has($key);
+        } catch (CacheException $e) {
             throw $e;
+        } catch (Psr6InvalidArgumentException | Psr16InvalidArgumentException $e) {
+            throw new CacheInvalidArgumentException(CacheError::HAS(), $e);
         } catch (Throwable $e) {
-            $this->logException(CacheError::HAS(), $e);
-            return false;
+            throw new CacheException(CacheError::HAS(), $e);
         }
     }
 
     /**
-     * Perform the operation specified in {@see \Psr\Cache\CacheItemPoolInterface::hasItem()}.
+     * Get whether the given key has a cached value.
      *
-     * @param mixed $key
+     * @param string $key
+     *   A string key that has already passed the PSR validation checks.
+     *
      * @return bool
-     * @throws InvalidArgumentException
-     * @psalm-suppress InvalidThrow
      */
-    abstract protected function performHasItem($key): bool;
+    abstract protected function has(string $key): bool;
 
     /**
      * @inheritDoc
@@ -150,71 +143,76 @@ abstract class AbstractCacheItemPool implements CacheItemPoolInterface
     final public function clear(): bool
     {
         try {
-            return $this->performClear();
+            return $this->deleteAll();
+        } catch (CacheException $e) {
+            throw $e;
+        } catch (Psr6InvalidArgumentException | Psr16InvalidArgumentException $e) {
+            throw new CacheInvalidArgumentException(CacheError::CLEAR(), $e);
         } catch (Throwable $e) {
-            $this->logException(CacheError::CLEAR(), $e);
-            return false;
+            throw new CacheException(CacheError::CLEAR(), $e);
         }
     }
 
     /**
-     * Perform the operation specified in {@see \Psr\Cache\CacheItemPoolInterface::clear()}.
+     * Delete all stored cache values.
      *
      * @return bool
      */
-    abstract protected function performClear(): bool;
+    abstract protected function deleteAll(): bool;
 
     /**
      * @inheritDoc
-     * @psalm-suppress InvalidCatch
      */
-    final public function deleteItem($key): bool
+    final public function deleteItem(string $key): bool
     {
         try {
-            return $this->performDeleteItem($key);
-        } catch (InvalidArgumentException $e) {
+            $key = $this->keyValidator->validate($key);
+            return $this->delete($key);
+        } catch (CacheException $e) {
             throw $e;
+        } catch (Psr6InvalidArgumentException | Psr16InvalidArgumentException $e) {
+            throw new CacheInvalidArgumentException(CacheError::DELETE(), $e);
         } catch (Throwable $e) {
-            $this->logException(CacheError::DELETE(), $e);
-            return false;
+            throw new CacheException(CacheError::DELETE(), $e);
         }
     }
 
     /**
-     * Perform the operation specified in {@see \Psr\Cache\CacheItemPoolInterface::deleteItem()}.
+     * Delete the record with the given key from cache.
      *
-     * @param mixed $key
+     * @param string $key
+     *   A string key that has already passed PSR validation checks.
+     *
      * @return bool
-     * @throws InvalidArgumentException
-     * @psalm-suppress InvalidThrow
      */
-    abstract protected function performDeleteItem($key): bool;
+    abstract protected function delete(string $key): bool;
 
     /**
      * @inheritDoc
-     * @psalm-suppress InvalidCatch
      */
     final public function deleteItems(array $keys): bool
     {
         try {
-            return $this->performDeleteItems($keys);
-        } catch (InvalidArgumentException $e) {
+            $keys = $this->keyValidator->validateMultiple($keys);
+            return $this->deleteMultiple(...$keys);
+        } catch (CacheException $e) {
             throw $e;
+        } catch (Psr6InvalidArgumentException | Psr16InvalidArgumentException $e) {
+            throw new CacheInvalidArgumentException(CacheError::DELETE_MULTIPLE(), $e);
         } catch (Throwable $e) {
-            $this->logException(CacheError::DELETE_MULTIPLE(), $e);
-            return false;
+            throw new CacheException(CacheError::DELETE_MULTIPLE(), $e);
         }
     }
 
     /**
-     * Perform the operation specified in {@see \Psr\Cache\CacheItemPoolInterface::deleteItems()}.
+     * Delete the records with the given keys from cache.
      *
-     * @param array $keys
+     * @param string ...$keys
+     *   String keys that have already passed PSR validation checks.
+     *
      * @return bool
-     * @throws InvalidArgumentException
-     * @psalm-suppress InvalidThrow
      */
-    abstract protected function performDeleteItems(array $keys): bool;
+    abstract protected function deleteMultiple(string ...$keys): bool;
 
     /**
      * @inheritDoc
@@ -222,20 +220,25 @@ abstract class AbstractCacheItemPool implements CacheItemPoolInterface
     final public function save(CacheItemInterface $item): bool
     {
         try {
-            return $this->performSave($item);
+            return $this->set($item);
+        } catch (CacheException $e) {
+            throw $e;
+        } catch (Psr6InvalidArgumentException | Psr16InvalidArgumentException $e) {
+            throw new CacheInvalidArgumentException(CacheError::SET(), $e);
         } catch (Throwable $e) {
-            $this->logException(CacheError::SET(), $e);
-            return false;
+            throw new CacheException(CacheError::SET(), $e);
         }
     }
 
     /**
-     * Perform the operation specified in {@see \Psr\Cache\CacheItemPoolInterface::save()}.
+     * Store the given item in cache.
      *
      * @param CacheItemInterface $item
+     *   The item to store in cache.
+     *
      * @return bool
      */
-    abstract protected function performSave(CacheItemInterface $item): bool;
+    abstract protected function set(CacheItemInterface $item): bool;
 
     /**
      * @inheritDoc
@@ -243,20 +246,25 @@ abstract class AbstractCacheItemPool implements CacheItemPoolInterface
     final public function saveDeferred(CacheItemInterface $item): bool
     {
         try {
-            return $this->performSaveDeferred($item);
+            return $this->setDeferred($item);
+        } catch (CacheException $e) {
+            throw $e;
+        } catch (Psr6InvalidArgumentException | Psr16InvalidArgumentException $e) {
+            throw new CacheInvalidArgumentException(CacheError::SET_DEFERRED(), $e);
         } catch (Throwable $e) {
-            $this->logException(CacheError::SET_DEFERRED(), $e);
-            return false;
+            throw new CacheException(CacheError::SET_DEFERRED(), $e);
         }
     }
 
     /**
-     * Perform the operation specified in {@see \Psr\Cache\CacheItemPoolInterface::saveDeferred()}.
+     * Prepare the given item to be stored in cache.
      *
      * @param CacheItemInterface $item
+     *   The item to prepare for storage.
+     *
      * @return bool
      */
-    abstract protected function performSaveDeferred(CacheItemInterface $item): bool;
+    abstract protected function setDeferred(CacheItemInterface $item): bool;
 
     /**
      * @inheritDoc
@@ -264,26 +272,20 @@ abstract class AbstractCacheItemPool implements CacheItemPoolInterface
     final public function commit(): bool
     {
         try {
-            return $this->performCommit();
+            return $this->commitDeferred();
+        } catch (CacheException $e) {
+            throw $e;
+        } catch (Psr6InvalidArgumentException | Psr16InvalidArgumentException $e) {
+            throw new CacheInvalidArgumentException(CacheError::COMMIT(), $e);
         } catch (Throwable $e) {
-            $this->logException(CacheError::COMMIT(), $e);
-            return false;
+            throw new CacheException(CacheError::COMMIT(), $e);
         }
     }
 
     /**
-     * Perform the operation specified in {@see \Psr\Cache\CacheItemPoolInterface::commit()}.
+     * Commit the deferred cache items in a single transaction to the cache storage.
      *
      * @return bool
      */
-    abstract protected function performCommit(): bool;
-
-    /**
-     * @param CacheError $cacheError
-     * @param Throwable $e
-     */
-    private function logException(CacheError $cacheError, Throwable $e): void
-    {
-        $this->logger->error((string)$cacheError, ['exception' => $e]);
-    }
+    abstract protected function commitDeferred(): bool;
 }
