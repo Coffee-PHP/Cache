@@ -23,14 +23,12 @@
 
 declare(strict_types=1);
 
-namespace CoffeePhp\Cache\Test\Unit\Data;
+namespace CoffeePhp\Cache\Test\Unit;
 
-use CoffeePhp\Cache\Contract\CacheManagerInterface;
-use CoffeePhp\Cache\Data\Cache;
+use CoffeePhp\Cache\Cache;
 use CoffeePhp\Cache\Exception\CacheException;
 use CoffeePhp\Cache\Exception\CacheInvalidArgumentException;
 use CoffeePhp\Cache\Test\Fake\FakeCacheComponentRegistrar;
-use CoffeePhp\Cache\Test\Unit\AbstractCacheTest;
 use DateInterval;
 use Psr\SimpleCache\InvalidArgumentException;
 use ReflectionClass;
@@ -59,7 +57,6 @@ final class CacheTest extends AbstractCacheTest
     private Cache $cache;
     private Cache $badCache;
     private Cache $badCache2;
-    private Cache $badCache3;
 
     /**
      * @before
@@ -67,10 +64,9 @@ final class CacheTest extends AbstractCacheTest
      */
     public function setupDependencies(): void
     {
-        $this->cache = $this->getClass(FakeCacheComponentRegistrar::DI_KEY_FAKE_CACHE)->getCache();
-        $this->badCache = $this->getClass(FakeCacheComponentRegistrar::DI_KEY_FAKE_BAD_CACHE)->getCache();
-        $this->badCache2 = $this->getClass(FakeCacheComponentRegistrar::DI_KEY_FAKE_BAD_CACHE_2)->getCache();
-        $this->badCache3 = $this->getClass(FakeCacheComponentRegistrar::DI_KEY_FAKE_BAD_CACHE_3)->getCache();
+        $this->cache = $this->getClass(FakeCacheComponentRegistrar::FAKE_CACHE);
+        $this->badCache = $this->getClass(FakeCacheComponentRegistrar::FAKE_BAD_CACHE);
+        $this->badCache2 = $this->getClass(FakeCacheComponentRegistrar::FAKE_BAD_CACHE_2);
         $this->fakeCache = [];
         $this->cache->clear();
         for ($i = 0; $i < 50; ++$i) {
@@ -108,12 +104,6 @@ final class CacheTest extends AbstractCacheTest
             'CACHESTATE[32]: Failed to fetch a value from cache ; test get',
             32
         );
-        self::assertException(
-            fn() => $this->badCache2->get('test'),
-            CacheException::class,
-            'CACHESTATE[32]: Failed to fetch a value from cache ; test get item',
-            32
-        );
     }
 
     /**
@@ -147,12 +137,6 @@ final class CacheTest extends AbstractCacheTest
             'CACHESTATE[64]: Failed to set a value in cache ; test set',
             64
         );
-        self::assertException(
-            fn() => $this->badCache2->set('2', '2'),
-            CacheException::class,
-            'CACHESTATE[64]: Failed to set a value in cache ; test save',
-            64
-        );
     }
 
     /**
@@ -184,12 +168,6 @@ final class CacheTest extends AbstractCacheTest
             'CACHESTATE[128]: Failed to delete a value from cache ; test delete',
             128
         );
-        self::assertException(
-            fn() => $this->badCache2->delete('2'),
-            CacheException::class,
-            'CACHESTATE[128]: Failed to delete a value from cache ; test delete item',
-            128
-        );
     }
 
     /**
@@ -209,11 +187,6 @@ final class CacheTest extends AbstractCacheTest
             fn() => $this->badCache->clear(),
             CacheException::class,
             'CACHESTATE[256]: Failed to clear cache ; test delete all'
-        );
-        self::assertException(
-            fn() => $this->badCache2->clear(),
-            CacheException::class,
-            'CACHESTATE[256]: Failed to clear cache ; test clear'
         );
     }
 
@@ -248,12 +221,6 @@ final class CacheTest extends AbstractCacheTest
             'CACHESTATE[33]: Failed to fetch multiple values from cache ; test get multiple',
             33
         );
-        self::assertException(
-            fn() => iterator_to_array($this->badCache2->getMultiple(['a', 'b', 'c'])),
-            CacheException::class,
-            'CACHESTATE[33]: Failed to fetch multiple values from cache ; test get items',
-            33
-        );
     }
 
     /**
@@ -267,7 +234,7 @@ final class CacheTest extends AbstractCacheTest
         }
         $override = $this->getFaker()->paragraph(50);
         assertTrue($this->cache->setMultiple(array_fill_keys(array_keys($this->fakeCache), $override)));
-        assertFalse($this->badCache3->setMultiple(array_fill_keys(array_keys($this->fakeCache), $override)));
+        assertFalse($this->badCache2->setMultiple(array_fill_keys(array_keys($this->fakeCache), $override)));
         foreach (array_keys($this->fakeCache) as $key) {
             assertSame($override, $this->cache->get($key));
         }
@@ -286,13 +253,7 @@ final class CacheTest extends AbstractCacheTest
         self::assertException(
             fn() => $this->badCache->setMultiple(['a' => 'b', 'c' => 'd', 'e' => 'f']),
             CacheException::class,
-            'CACHESTATE[66]: Failed to set a deferred value in cache ; test set deferred',
-            66
-        );
-        self::assertException(
-            fn() => $this->badCache2->setMultiple(['a' => 'b', 'c' => 'd', 'e' => 'f']),
-            CacheException::class,
-            'CACHESTATE[65]: Failed to set multiple values in cache ; test save deferred',
+            'CACHESTATE[65]: Failed to set multiple values in cache ; test set deferred',
             65
         );
     }
@@ -328,12 +289,6 @@ final class CacheTest extends AbstractCacheTest
             'CACHESTATE[129]: Failed to delete multiple values from cache ; test delete multiple',
             129
         );
-        self::assertException(
-            fn() => $this->badCache2->deleteMultiple(['a', 'b', 'c']),
-            CacheException::class,
-            'CACHESTATE[129]: Failed to delete multiple values from cache ; test delete items',
-            129
-        );
     }
 
     /**
@@ -365,12 +320,6 @@ final class CacheTest extends AbstractCacheTest
             fn() => $this->badCache->has('a'),
             CacheException::class,
             'CACHESTATE[512]: Failed to check for the availability of a key in cache ; test has',
-            512
-        );
-        self::assertException(
-            fn() => $this->badCache2->has('a'),
-            CacheException::class,
-            'CACHESTATE[512]: Failed to check for the availability of a key in cache ; test has item',
             512
         );
     }

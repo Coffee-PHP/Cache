@@ -25,10 +25,8 @@ declare(strict_types=1);
 
 namespace CoffeePhp\Cache\Integration;
 
-use CoffeePhp\Cache\Contract\Data\Factory\CacheFactoryInterface;
 use CoffeePhp\Cache\Contract\Data\Factory\CacheItemFactoryInterface;
 use CoffeePhp\Cache\Contract\Validation\CacheKeyValidatorInterface;
-use CoffeePhp\Cache\Data\Factory\CacheFactory;
 use CoffeePhp\Cache\Data\Factory\CacheItemFactory;
 use CoffeePhp\Cache\Validation\CacheKeyValidator;
 use CoffeePhp\ComponentRegistry\Contract\ComponentRegistrarInterface;
@@ -57,9 +55,6 @@ final class CacheComponentRegistrar implements ComponentRegistrarInterface
     {
         $this->di->bind(CacheKeyValidator::class, CacheKeyValidator::class);
         $this->di->bind(CacheKeyValidatorInterface::class, CacheKeyValidator::class);
-
-        $this->di->bind(CacheFactory::class, CacheFactory::class);
-        $this->di->bind(CacheFactoryInterface::class, CacheFactory::class);
 
         $this->di->bind(CacheItemFactory::class, CacheItemFactory::class);
         $this->di->bind(CacheItemFactoryInterface::class, CacheItemFactory::class);

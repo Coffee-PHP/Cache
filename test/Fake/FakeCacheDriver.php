@@ -1,7 +1,7 @@
 <?php
 
 /**
- * FakeCacheItemPool.php
+ * FakeCacheDriver.php
  *
  * Copyright 2020 Danny Damsky
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,24 +25,33 @@ declare(strict_types=1);
 
 namespace CoffeePhp\Cache\Test\Fake;
 
-use CoffeePhp\Cache\Data\AbstractCacheItemPool;
+use CoffeePhp\Cache\Contract\CacheDriverInterface;
+use CoffeePhp\Cache\Contract\Data\Factory\CacheItemFactoryInterface;
 use Psr\Cache\CacheItemInterface;
 
 /**
- * Class FakeCacheItemPool
+ * Class FakeCacheDriver
  * @package coffeephp\cache
  * @author Danny Damsky <dannydamsky99@gmail.com>
  * @since 2020-10-03
  */
-final class FakeCacheItemPool extends AbstractCacheItemPool
+final class FakeCacheDriver implements CacheDriverInterface
 {
     private array $fakeCache = [];
     private array $deferred = [];
 
     /**
+     * FakeCacheItemPool constructor.
+     * @param CacheItemFactoryInterface $itemFactory
+     */
+    public function __construct(private CacheItemFactoryInterface $itemFactory)
+    {
+    }
+
+    /**
      * @inheritDoc
      */
-    protected function get(string $key): CacheItemInterface
+    public function get(string $key): CacheItemInterface
     {
         return $this->itemFactory->create($key, $this->fakeCache[$key] ?? null, true);
     }
@@ -50,7 +59,7 @@ final class FakeCacheItemPool extends AbstractCacheItemPool
     /**
      * @inheritDoc
      */
-    protected function getMultiple(string ...$keys): iterable
+    public function getMultiple(string ...$keys): iterable
     {
         foreach ($keys as $key) {
             yield $key => $this->get($key);
@@ -60,7 +69,7 @@ final class FakeCacheItemPool extends AbstractCacheItemPool
     /**
      * @inheritDoc
      */
-    protected function has(string $key): bool
+    public function has(string $key): bool
     {
         return isset($this->fakeCache[$key]);
     }
@@ -68,7 +77,7 @@ final class FakeCacheItemPool extends AbstractCacheItemPool
     /**
      * @inheritDoc
      */
-    protected function deleteAll(): bool
+    public function deleteAll(): bool
     {
         $this->fakeCache = [];
         return true;
@@ -77,7 +86,7 @@ final class FakeCacheItemPool extends AbstractCacheItemPool
     /**
      * @inheritDoc
      */
-    protected function delete(string $key): bool
+    public function delete(string $key): bool
     {
         unset($this->fakeCache[$key]);
         return true;
@@ -86,7 +95,7 @@ final class FakeCacheItemPool extends AbstractCacheItemPool
     /**
      * @inheritDoc
      */
-    protected function deleteMultiple(string ...$keys): bool
+    public function deleteMultiple(string ...$keys): bool
     {
         foreach ($keys as $key) {
             $this->delete($key);
@@ -97,7 +106,7 @@ final class FakeCacheItemPool extends AbstractCacheItemPool
     /**
      * @inheritDoc
      */
-    protected function set(CacheItemInterface $item): bool
+    public function set(CacheItemInterface $item): bool
     {
         $this->fakeCache[$item->getKey()] = $item->get();
         return true;
@@ -106,7 +115,7 @@ final class FakeCacheItemPool extends AbstractCacheItemPool
     /**
      * @inheritDoc
      */
-    protected function setDeferred(CacheItemInterface $item): bool
+    public function setDeferred(CacheItemInterface $item): bool
     {
         $this->deferred[$item->getKey()] = $item;
         return true;
@@ -115,10 +124,10 @@ final class FakeCacheItemPool extends AbstractCacheItemPool
     /**
      * @inheritDoc
      */
-    protected function commitDeferred(): bool
+    public function commitDeferred(): bool
     {
         foreach ($this->deferred as $key => $value) {
-            $this->save($value);
+            $this->set($value);
         }
         $this->deferred = [];
         return true;

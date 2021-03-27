@@ -24,8 +24,9 @@
 
 declare(strict_types=1);
 
-namespace CoffeePhp\Cache\Data;
+namespace CoffeePhp\Cache;
 
+use CoffeePhp\Cache\Contract\CacheDriverInterface;
 use CoffeePhp\Cache\Contract\Data\Factory\CacheItemFactoryInterface;
 use CoffeePhp\Cache\Contract\Validation\CacheKeyValidatorInterface;
 use CoffeePhp\Cache\Enum\CacheError;
@@ -33,8 +34,6 @@ use CoffeePhp\Cache\Exception\CacheException;
 use CoffeePhp\Cache\Exception\CacheInvalidArgumentException;
 use DateInterval;
 use DateTime;
-use Psr\Cache\CacheItemInterface;
-use Psr\Cache\CacheItemPoolInterface;
 use Psr\Cache\InvalidArgumentException as Psr6InvalidArgumentException;
 use Psr\SimpleCache\CacheInterface;
 use Psr\SimpleCache\InvalidArgumentException as Psr16InvalidArgumentException;
@@ -50,13 +49,13 @@ final class Cache implements CacheInterface
 {
     /**
      * Cache constructor.
+     * @param CacheDriverInterface $driver
      * @param CacheItemFactoryInterface $itemFactory
-     * @param CacheItemPoolInterface $pool
      * @param CacheKeyValidatorInterface $keyValidator
      */
     public function __construct(
+        private CacheDriverInterface $driver,
         private CacheItemFactoryInterface $itemFactory,
-        private CacheItemPoolInterface $pool,
         private CacheKeyValidatorInterface $keyValidator,
     ) {
     }
@@ -68,7 +67,7 @@ final class Cache implements CacheInterface
     {
         try {
             $key = $this->keyValidator->validate($key);
-            return $this->pool->getItem($key)->get() ?? $default;
+            return $this->driver->get($key)->get() ?? $default;
         } catch (CacheException $e) {
             throw $e;
         } catch (Psr16InvalidArgumentException | Psr6InvalidArgumentException $e) {
@@ -87,7 +86,7 @@ final class Cache implements CacheInterface
             $key = $this->keyValidator->validate($key);
             $expiration = $this->convertTtlToDateTime($ttl);
             $item = $this->itemFactory->create($key, $value, true, $expiration);
-            return $this->pool->save($item);
+            return $this->driver->set($item);
         } catch (CacheException $e) {
             throw $e;
         } catch (Psr16InvalidArgumentException | Psr6InvalidArgumentException $e) {
@@ -104,7 +103,7 @@ final class Cache implements CacheInterface
     {
         try {
             $key = $this->keyValidator->validate($key);
-            return $this->pool->deleteItem($key);
+            return $this->driver->delete($key);
         } catch (CacheException $e) {
             throw $e;
         } catch (Psr16InvalidArgumentException | Psr6InvalidArgumentException $e) {
@@ -121,7 +120,7 @@ final class Cache implements CacheInterface
     public function clear(): bool
     {
         try {
-            return $this->pool->clear();
+            return $this->driver->deleteAll();
         } catch (CacheException $e) {
             throw $e;
         } catch (Psr16InvalidArgumentException | Psr6InvalidArgumentException $e) {
@@ -138,8 +137,7 @@ final class Cache implements CacheInterface
     {
         try {
             $keys = $this->keyValidator->validateMultiple($keys);
-            /** @var iterable<string, CacheItemInterface> $items */
-            $items = $this->pool->getItems([...$keys]);
+            $items = $this->driver->getMultiple(...$keys);
             foreach ($items as $key => $value) {
                 yield $key => $value->get() ?? $default;
             }
@@ -161,11 +159,11 @@ final class Cache implements CacheInterface
             $expiration = $this->convertTtlToDateTime($ttl);
             foreach ($values as $key => $value) {
                 $item = $this->itemFactory->create($key, $value, true, $expiration);
-                if (!$this->pool->saveDeferred($item)) {
+                if (!$this->driver->setDeferred($item)) {
                     return false;
                 }
             }
-            return $this->pool->commit();
+            return $this->driver->commitDeferred();
         } catch (CacheException $e) {
             throw $e;
         } catch (Psr16InvalidArgumentException | Psr6InvalidArgumentException $e) {
@@ -182,7 +180,7 @@ final class Cache implements CacheInterface
     {
         try {
             $keys = $this->keyValidator->validateMultiple($keys);
-            return $this->pool->deleteItems([...$keys]);
+            return $this->driver->deleteMultiple(...$keys);
         } catch (CacheException $e) {
             throw $e;
         } catch (Psr16InvalidArgumentException | Psr6InvalidArgumentException $e) {
@@ -199,7 +197,7 @@ final class Cache implements CacheInterface
     {
         try {
             $key = $this->keyValidator->validate($key);
-            return $this->pool->hasItem($key);
+            return $this->driver->has($key);
         } catch (CacheException $e) {
             throw $e;
         } catch (Psr16InvalidArgumentException | Psr6InvalidArgumentException $e) {

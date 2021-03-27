@@ -1,9 +1,9 @@
 <?php
 
 /**
- * FakeBadCacheItemPool3.php
+ * FakeBadCacheDriver.php
  *
- * Copyright 2021 Danny Damsky
+ * Copyright 2020 Danny Damsky
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -18,95 +18,94 @@
  *
  * @package coffeephp\cache
  * @author Danny Damsky <dannydamsky99@gmail.com>
- * @since 2021-03-27
+ * @since 2020-10-03
  */
 
 declare(strict_types=1);
 
 namespace CoffeePhp\Cache\Test\Fake;
 
+use CoffeePhp\Cache\Contract\CacheDriverInterface;
 use Psr\Cache\CacheItemInterface;
-use Psr\Cache\CacheItemPoolInterface;
 use RuntimeException;
 
 /**
- * Class FakeBadCacheItemPool3
+ * Class FakeBadCacheDriver
  * @package coffeephp\cache
  * @author Danny Damsky <dannydamsky99@gmail.com>
- * @since 2021-03-27
+ * @since 2020-10-03
  */
-final class FakeBadCacheItemPool3 implements CacheItemPoolInterface
+final class FakeBadCacheDriver implements CacheDriverInterface
 {
-
     /**
      * @inheritDoc
      */
-    public function getItem(string $key): CacheItemInterface
+    public function get(string $key): CacheItemInterface
     {
-        throw new RuntimeException('test get item');
+        throw new RuntimeException('test get');
     }
 
     /**
      * @inheritDoc
      */
-    public function getItems(array $keys = []): iterable
+    public function getMultiple(string ...$keys): iterable
     {
-        throw new RuntimeException('test get items');
+        throw new RuntimeException('test get multiple');
     }
 
     /**
      * @inheritDoc
      */
-    public function hasItem(string $key): bool
+    public function has(string $key): bool
     {
-        return false;
+        throw new RuntimeException('test has');
     }
 
     /**
      * @inheritDoc
      */
-    public function clear(): bool
+    public function deleteAll(): bool
     {
-        return false;
+        throw new RuntimeException('test delete all');
     }
 
     /**
      * @inheritDoc
      */
-    public function deleteItem(string $key): bool
+    public function delete(string $key): bool
     {
-        return false;
+        throw new RuntimeException('test delete');
     }
 
     /**
      * @inheritDoc
      */
-    public function deleteItems(array $keys): bool
+    public function deleteMultiple(string ...$keys): bool
     {
-        return false;
+        throw new RuntimeException('test delete multiple');
     }
 
     /**
      * @inheritDoc
      */
-    public function save(CacheItemInterface $item): bool
+    public function set(CacheItemInterface $item): bool
     {
-        return false;
+        throw new RuntimeException('test set');
     }
 
     /**
      * @inheritDoc
      */
-    public function saveDeferred(CacheItemInterface $item): bool
+    public function setDeferred(CacheItemInterface $item): bool
     {
-        return false;
+        throw new RuntimeException('test set deferred');
     }
 
     /**
      * @inheritDoc
      */
-    public function commit(): bool
+    public function commitDeferred(): bool
     {
-        return false;
+        throw new RuntimeException('test commit deferred');
     }
 }

@@ -25,11 +25,13 @@ declare(strict_types=1);
 
 namespace CoffeePhp\Cache\Test\Fake;
 
-use CoffeePhp\Cache\CacheManager;
-use CoffeePhp\Cache\Contract\CacheManagerInterface;
+use CoffeePhp\Cache\Cache;
+use CoffeePhp\Cache\CacheItemPool;
+use CoffeePhp\Cache\Contract\CacheDriverInterface;
 use CoffeePhp\ComponentRegistry\Contract\ComponentRegistrarInterface;
 use CoffeePhp\Di\Contract\ContainerInterface;
 use Psr\Cache\CacheItemPoolInterface;
+use Psr\SimpleCache\CacheInterface;
 
 /**
  * Class FakeCacheComponentRegistrar
@@ -39,10 +41,35 @@ use Psr\Cache\CacheItemPoolInterface;
  */
 final class FakeCacheComponentRegistrar implements ComponentRegistrarInterface
 {
-    public const DI_KEY_FAKE_BAD_CACHE = CacheManagerInterface::class . '::fake_bad';
-    public const DI_KEY_FAKE_BAD_CACHE_2 = CacheManagerInterface::class . '::fake_bad2';
-    public const DI_KEY_FAKE_BAD_CACHE_3 = CacheManagerInterface::class . '::fake_bad3';
-    public const DI_KEY_FAKE_CACHE = CacheManagerInterface::class . '::fake';
+    /**
+     * @var string
+     */
+    public const FAKE_CACHE = CacheInterface::class . '::' . FakeCacheDriver::class;
+
+    /**
+     * @var string
+     */
+    public const FAKE_CACHE_POOL = CacheItemPoolInterface::class . '::' . FakeCacheDriver::class;
+
+    /**
+     * @var string
+     */
+    public const FAKE_BAD_CACHE = CacheInterface::class . '::' . FakeBadCacheDriver::class;
+
+    /**
+     * @var string
+     */
+    public const FAKE_BAD_CACHE_POOL = CacheItemPoolInterface::class . '::' . FakeBadCacheDriver::class;
+
+    /**
+     * @var string
+     */
+    public const FAKE_BAD_CACHE_2 = CacheInterface::class . '::' . FakeBadCacheDriver2::class;
+
+    /**
+     * @var string
+     */
+    public const FAKE_BAD_CACHE_POOL_2 = CacheItemPoolInterface::class . '::' . FakeBadCacheDriver2::class;
 
     /**
      * FakeCacheComponentRegistrar constructor.
@@ -57,32 +84,32 @@ final class FakeCacheComponentRegistrar implements ComponentRegistrarInterface
      */
     public function register(): void
     {
-        $this->di->bind(FakeBadCacheItemPool::class, FakeBadCacheItemPool::class);
+        $this->di->bind(FakeCacheDriver::class, FakeCacheDriver::class);
+        $this->di->bind(self::FAKE_CACHE, Cache::class, [CacheDriverInterface::class => FakeCacheDriver::class]);
         $this->di->bind(
-            self::DI_KEY_FAKE_BAD_CACHE,
-            CacheManager::class,
-            [CacheItemPoolInterface::class => FakeBadCacheItemPool::class]
+            self::FAKE_CACHE_POOL,
+            CacheItemPool::class,
+            [CacheDriverInterface::class => FakeCacheDriver::class]
         );
 
-        $this->di->bind(FakeBadCacheItemPool2::class, FakeBadCacheItemPool2::class);
+        $this->di->bind(FakeBadCacheDriver::class, FakeBadCacheDriver::class);
+        $this->di->bind(self::FAKE_BAD_CACHE, Cache::class, [CacheDriverInterface::class => FakeBadCacheDriver::class]);
         $this->di->bind(
-            self::DI_KEY_FAKE_BAD_CACHE_2,
-            CacheManager::class,
-            [CacheItemPoolInterface::class => FakeBadCacheItemPool2::class]
+            self::FAKE_BAD_CACHE_POOL,
+            CacheItemPool::class,
+            [CacheDriverInterface::class => FakeBadCacheDriver::class]
         );
 
-        $this->di->bind(FakeBadCacheItemPool3::class, FakeBadCacheItemPool3::class);
+        $this->di->bind(FakeBadCacheDriver2::class, FakeBadCacheDriver2::class);
         $this->di->bind(
-            self::DI_KEY_FAKE_BAD_CACHE_3,
-            CacheManager::class,
-            [CacheItemPoolInterface::class => FakeBadCacheItemPool3::class]
+            self::FAKE_BAD_CACHE_2,
+            Cache::class,
+            [CacheDriverInterface::class => FakeBadCacheDriver2::class]
         );
-
-        $this->di->bind(FakeCacheItemPool::class, FakeCacheItemPool::class);
         $this->di->bind(
-            self::DI_KEY_FAKE_CACHE,
-            CacheManager::class,
-            [CacheItemPoolInterface::class => FakeCacheItemPool::class]
+            self::FAKE_BAD_CACHE_POOL_2,
+            CacheItemPool::class,
+            [CacheDriverInterface::class => FakeBadCacheDriver2::class]
         );
     }
 }
