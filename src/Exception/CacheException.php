@@ -46,7 +46,10 @@ class CacheException extends RuntimeException implements Psr6CacheException, Psr
      */
     public function __construct(CacheError $error, ?Throwable $previous = null)
     {
-        $message = $error->getMessage() . ($previous !== null ? " ; {$previous->getMessage()}" : '');
-        parent::__construct($message, $error->value, $previous);
+        parent::__construct(
+            $error->getMessage() . ($previous !== null ? " ; {$previous->getMessage()}" : ''),
+            $error->value,
+            $previous
+        );
     }
 }

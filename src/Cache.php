@@ -34,6 +34,7 @@ use CoffeePhp\Cache\Exception\CacheException;
 use CoffeePhp\Cache\Exception\CacheInvalidArgumentException;
 use DateInterval;
 use DateTime;
+use Psr\Cache\CacheItemInterface;
 use Psr\Cache\InvalidArgumentException as Psr6InvalidArgumentException;
 use Psr\SimpleCache\CacheInterface;
 use Psr\SimpleCache\InvalidArgumentException as Psr16InvalidArgumentException;
@@ -138,15 +139,25 @@ final class Cache implements CacheInterface
         try {
             $keys = $this->keyValidator->validateMultiple($keys);
             $items = $this->driver->getMultiple(...$keys);
-            foreach ($items as $key => $value) {
-                yield $key => $value->get() ?? $default;
-            }
+            return $this->generateKeyValuePairs($items, $default);
         } catch (CacheException $e) {
             throw $e;
         } catch (Psr16InvalidArgumentException | Psr6InvalidArgumentException $e) {
             throw new CacheInvalidArgumentException(CacheError::GET_MULTIPLE(), $e);
         } catch (Throwable $e) {
             throw new CacheException(CacheError::GET_MULTIPLE(), $e);
+        }
+    }
+
+    /**
+     * @param iterable<int, CacheItemInterface> $items
+     * @param mixed $default
+     * @return iterable
+     */
+    private function generateKeyValuePairs(iterable $items, mixed $default): iterable
+    {
+        foreach ($items as $key => $value) {
+            yield $key => $value->get() ?? $default;
         }
     }
 

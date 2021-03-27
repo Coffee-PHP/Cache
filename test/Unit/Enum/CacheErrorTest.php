@@ -26,7 +26,7 @@ declare(strict_types=1);
 namespace CoffeePhp\Cache\Test\Unit\Enum;
 
 use CoffeePhp\Cache\Enum\CacheError;
-use CoffeePhp\QualityTools\TestCase;
+use CoffeePhp\Cache\Test\Unit\AbstractCacheTest;
 
 use function PHPUnit\Framework\assertSame;
 
@@ -37,7 +37,7 @@ use function PHPUnit\Framework\assertSame;
  * @since 2020-10-03
  * @see CacheError
  */
-final class CacheErrorTest extends TestCase
+final class CacheErrorTest extends AbstractCacheTest
 {
     public function testDataIntegrity(): void
     {
