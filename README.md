@@ -1,5 +1,7 @@
 # Coffee PHP - Cache
 
+![Build](https://github.com/Coffee-PHP/Cache/workflows/Build/badge.svg)
+
 Provides abstractions for implementing PSR-6 and PSR-16 compliant caching mechanisms.
 
 ```
