@@ -27,7 +27,6 @@ declare(strict_types=1);
 namespace CoffeePhp\Cache;
 
 use CoffeePhp\Cache\Contract\CacheDriverInterface;
-use CoffeePhp\Cache\Contract\Data\Factory\CacheItemFactoryInterface;
 use CoffeePhp\Cache\Contract\Validation\CacheKeyValidatorInterface;
 use CoffeePhp\Cache\Enum\CacheError;
 use CoffeePhp\Cache\Exception\CacheException;
@@ -47,14 +46,12 @@ use Throwable;
 final class CacheItemPool implements CacheItemPoolInterface
 {
     /**
-     * AbstractCacheItemPool constructor.
+     * CacheItemPool constructor.
      * @param CacheDriverInterface $driver
-     * @param CacheItemFactoryInterface $itemFactory
      * @param CacheKeyValidatorInterface $keyValidator
      */
     public function __construct(
         private CacheDriverInterface $driver,
-        private CacheItemFactoryInterface $itemFactory,
         private CacheKeyValidatorInterface $keyValidator,
     ) {
     }
